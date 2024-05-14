@@ -7,14 +7,10 @@
     <link rel="stylesheet" href="static/css/style.css">
 </head>
 <body>
-    <div background-image: img src="static/images/facility.png" >
+    <div class="background-container"></div>
+    <div class="app-container">
+        <!-- Streamlit app content will go here -->
+        {{ streamlit_content }}
     </div>
-
-    <script>
-        function manageInventory() {
-            document.querySelector('.background-container').style.display = 'none';
-            document.querySelector('.app-container').style.display = 'block';
-        }
-    </script>
 </body>
 </html>
