@@ -20,6 +20,7 @@ def calculate_safety_stock(mean, std_dev, service_level):
 
 # Define a simple inventory policy simulation with stochastic lead times
 def simulate_inventory(policy, duration, demand, s, Q, S, R, service_level_target, std_dev):
+    # Use the teacher's approach for stochastic lead times
     d_mu = 5  # Mean demand
     d_std = 1  # Standard deviation of demand
     lead_times = np.maximum(1, np.random.normal(loc=d_mu, scale=d_std, size=duration).astype(int))
@@ -32,17 +33,21 @@ def simulate_inventory(policy, duration, demand, s, Q, S, R, service_level_targe
     shortages = np.zeros(duration)
     on_hand = np.zeros(duration)
 
+    # Initial inventory level
     inventory_levels[0] = S if 'S' in policy else 0
 
     for t in range(1, duration):
+        # Update on-hand inventory and shortages
         on_hand[t] = max(0, inventory_levels[t-1] - demand[t-1])
         shortages[t] = max(0, demand[t-1] - inventory_levels[t-1])
 
+        # Check for arrival of orders
         if t >= lead_times[t]:
             inventory_levels[t] = on_hand[t] + in_transit[t - lead_times[t]]
         else:
             inventory_levels[t] = on_hand[t]
 
+        # Place orders based on the selected policy
         if policy == 's,Q' and inventory_levels[t] < s:
             orders[t] = Q
             if t + lead_times[t] < duration:
@@ -53,12 +58,16 @@ def simulate_inventory(policy, duration, demand, s, Q, S, R, service_level_targe
             if t + lead_times[t] < duration:
                 in_transit[t + lead_times[t]] += order_quantity
 
-        inventory_levels[t] = max(0, inventory_levels[t])
+        inventory_levels[t] = max(0, inventory_levels[t])  # Ensure no negative inventory
 
     service_level_achieved = (1 - np.sum(shortages) / np.sum(demand)) * 100
     return inventory_levels.astype(int), orders.astype(int), in_transit.astype(int), shortages.astype(int), on_hand.astype(int), service_level_achieved
 
 st.title("Inventory Simulation")
+
+# Initialize session state
+if 'show_parameters' not in st.session_state:
+    st.session_state.show_parameters = False
 
 # Widgets for input parameters
 duration = st.number_input("Duration (days)", value=30)
@@ -68,27 +77,30 @@ policy = st.selectbox("Policy:", ["s,Q", "R,s,Q", "s,S", "R,s,S"])
 distribution = st.selectbox("Demand Distribution:", ["Normal", "Poisson", "Uniform"])
 service_level = st.slider('Service Level:', 0.80, 1.00, 0.95)
 
-further_calculation = st.button("Further Calculation")
+if st.button("Further Calculation"):
+    st.session_state.show_parameters = True
 
-if further_calculation:
+if st.session_state.show_parameters:
     if policy == "s,Q":
         s = st.number_input("Reorder Point (s):", value=20)
         Q = st.number_input("Order Quantity (Q):", value=40)
-        S, R = 0, 0
+        R = None
+        S = None
     elif policy == "R,s,Q":
         R = st.number_input("Review Period (R):", value=10)
         s = st.number_input("Reorder Point (s):", value=20)
         Q = st.number_input("Order Quantity (Q):", value=40)
-        S = 0
+        S = None
     elif policy == "s,S":
         s = st.number_input("Reorder Point (s):", value=20)
         S = st.number_input("Order-up-to Level (S):", value=100)
-        Q, R = 0, 0
+        R = None
+        Q = None
     elif policy == "R,s,S":
         R = st.number_input("Review Period (R):", value=10)
         s = st.number_input("Reorder Point (s):", value=20)
         S = st.number_input("Order-up-to Level (S):", value=100)
-        Q = 0
+        Q = None
 
     if st.button("Run Simulation"):
         demand = generate_demand(distribution, duration, mean_demand, std_dev)
