@@ -60,8 +60,8 @@ def simulate_inventory(policy, duration, demand, s, Q, S, R, service_level_targe
     return inventory_levels, orders, in_transit, shortages, on_hand, service_level_achieved
 
 def send_email(file_path, to_email):
-    from_email = "your_email@example.com"
-    password = "your_password"
+    from_email = "goksoyy@mef.edu.tr"
+    password = "euf4svrk"
 
     msg = MIMEMultipart()
     msg['From'] = from_email
