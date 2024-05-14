@@ -74,16 +74,26 @@ distribution = st.selectbox("Demand Distribution:", ["Normal", "Poisson", "Unifo
 service_level = st.slider('Service Level:', 0.80, 1.00, 0.95)
 
 if st.button("Further Calculation"):
-    if policy in ["s,Q", "R,s,Q"]:
+    if policy == "s,Q":
         s = st.number_input("Reorder Point (s):", value=20)
         Q = st.number_input("Order Quantity (Q):", value=40)
-        S = 0
-        R = st.number_input("Review Period (R):", value=10 if policy == 'R,s,Q' else 0)
-    elif policy in ["s,S", "R,s,S"]:
+        R = None
+        S = None
+    elif policy == "R,s,Q":
+        R = st.number_input("Review Period (R):", value=10)
+        s = st.number_input("Reorder Point (s):", value=20)
+        Q = st.number_input("Order Quantity (Q):", value=40)
+        S = None
+    elif policy == "s,S":
         s = st.number_input("Reorder Point (s):", value=20)
         S = st.number_input("Order-up-to Level (S):", value=100)
-        Q = 0
-        R = st.number_input("Review Period (R):", value=10 if policy == 'R,s,S' else 0)
+        R = None
+        Q = None
+    elif policy == "R,s,S":
+        R = st.number_input("Review Period (R):", value=10)
+        s = st.number_input("Reorder Point (s):", value=20)
+        S = st.number_input("Order-up-to Level (S):", value=100)
+        Q = None
 
     if st.button("Run Simulation"):
         demand = generate_demand(distribution, duration, mean_demand, std_dev)
@@ -117,4 +127,3 @@ if st.button("Further Calculation"):
         st.success(f"Results saved to {file_path}")
         st.write(f"Achieved Service Level: {service_level_achieved:.2f}%")
         st.download_button('Download CSV', data=results_df.to_csv(index=False), file_name=file_path, mime='text/csv')
-
