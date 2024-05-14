@@ -78,11 +78,16 @@ def send_email(file_path, to_email):
     part.add_header('Content-Disposition', 'attachment; filename="inventorycontrol.csv"')
     msg.attach(part)
 
-    server = smtplib.SMTP('smtp.gmail.com', 587)
-    server.starttls()
-    server.login(from_email, password)
-    server.sendmail(from_email, to_email, msg.as_string())
-    server.quit()
+    try:
+        server = smtplib.SMTP('smtp.gmail.com', 587)
+        server.starttls()
+        server.login(from_email, password)
+        server.sendmail(from_email, to_email, msg.as_string())
+        server.quit()
+        return True
+    except Exception as e:
+        st.error(f"Failed to send email: {e}")
+        return False
 
 # Streamlit App
 st.title("Inventory Simulation")
@@ -148,5 +153,5 @@ if st.session_state.further_calculation:
         st.download_button('Download CSV', data=results_df.to_csv(index=False), file_name=file_path, mime='text/csv')
 
         if st.button("Send Report to my Mail"):
-            send_email(file_path, email)
-            st.success(f"Report sent to {email}")
+            if send_email(file_path, email):
+                st.success(f"Report sent to {email}")
