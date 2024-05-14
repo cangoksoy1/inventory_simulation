@@ -4,13 +4,18 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.stats import norm, poisson
+import os
 
-# Load the custom HTML
-with open("static/index.html") as f:
-    html_content = f.read()
+# Serve the HTML file
+def serve_html(file_path):
+    with open(file_path, 'r') as file:
+        return file.read()
 
-# Streamlit to display the HTML
-components.html(html_content, height=600)
+html_file_path = os.path.join('static', 'index.html')
+st.markdown(serve_html(html_file_path), unsafe_allow_html=True)
+
+# Streamlit app content
+st.title("Inventory Control")
 
 # Define demand generation based on distribution choice
 def generate_demand(distribution, duration, mean, std_dev):
@@ -133,3 +138,12 @@ if st.session_state.show_parameters:
         st.success(f"Results saved to {file_path}")
         st.write(f"Achieved Service Level: {service_level_achieved:.2f}%")
         st.download_button('Download CSV', data=results_df.to_csv(index=False), file_name=file_path, mime='text/csv')
+
+
+# Load the custom HTML
+with open("static/index.html") as f:
+    html_content = f.read()
+
+# Streamlit to display the HTML
+components.html(html_content, height=600)
+
