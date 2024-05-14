@@ -1,0 +1,36 @@
+body {
+    background-image: url("facility.png");
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+}
+
+#main-content {
+    display: none;
+}
+
+#manage-inventory-btn {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: #4CAF50;
+    color: white;
+    padding: 16px 32px;
+    text-align: center;
+    font-size: 16px;
+    margin: 4px 2px;
+    cursor: pointer;
+    border: none;
+    border-radius: 4px;
+    box-shadow: 0 5px 10px 0 rgba(0,0,0,0.2), 0 5px 10px 0 rgba(0,0,0,0.19);
+}
+
+#manage-inventory-btn:hover {
+    background-color: #45a049;
+}
+
+#manage-inventory-btn:active {
+    background-color: #3e8e41;
+}
+
