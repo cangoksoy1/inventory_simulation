@@ -20,4 +20,5 @@ body, html {
     padding: 20px;
     position: relative;
     z-index: 1;
+    color: white; /* Adjust text color to be readable over the background */
 }
