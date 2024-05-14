@@ -152,6 +152,8 @@ if st.session_state.further_calculation:
         st.write(f"Achieved Service Level: {service_level_achieved:.2f}%")
         st.download_button('Download CSV', data=results_df.to_csv(index=False), file_name=file_path, mime='text/csv')
 
-        if st.button("Send Report to my Mail"):
+        if email and st.button("Send Report to my Mail"):
             if send_email(file_path, email):
                 st.success(f"Report sent to {email}")
+            else:
+                st.error(f"Failed to send report to {email}. Please check the email address and try again.")
