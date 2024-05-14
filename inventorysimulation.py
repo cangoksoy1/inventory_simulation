@@ -1,8 +1,8 @@
 import streamlit as st
 import numpy as np
-import matplotlib.pyplot as plt
-from scipy.stats import norm, poisson, uniform
 import pandas as pd
+import matplotlib.pyplot as plt
+from scipy.stats import norm, poisson
 
 # Define demand generation based on distribution choice
 def generate_demand(distribution, duration, mean, std_dev):
@@ -67,42 +67,35 @@ st.title("Inventory Simulation")
 
 # Widgets for input parameters
 duration = st.number_input("Duration (days)", value=30)
-mean_demand = st.number_input("Demand Mean", value=50)
-std_dev = st.number_input("Demand Std Dev", value=10)
-policy = st.selectbox("Policy", ["s,Q", "R,s,Q", "s,S", "R,s,S"])
-distribution = st.selectbox("Demand Distribution", ["Normal", "Poisson", "Uniform"])
-service_level = st.slider("Service Level", min_value=0.80, max_value=1.00, value=0.95)
-s = st.number_input("Reorder Point (s)", value=20)
-Q = st.number_input("Order Quantity (Q)", value=40)
-S = st.number_input("Order-up-to Level (S)", value=60)
-R = st.number_input("Review Period (R)", value=10)
+mean_demand = st.number_input("Demand Mean:", value=50)
+std_dev = st.number_input("Demand Std Dev:", value=10)
+policy = st.selectbox("Policy:", ["s,Q", "R,s,Q", "s,S", "R,s,S"])
+distribution = st.selectbox("Demand Distribution:", ["Normal", "Poisson", "Uniform"])
+service_level = st.slider('Service Level:', 0.80, 1.00, 0.95)
+s = st.number_input("Reorder Point (s):", value=20)
+Q = st.number_input("Order Quantity (Q):", value=40 if policy == 's,Q' or policy == 'R,s,Q' else 0)
+S = st.number_input("Order-up-to Level (S):", value=100 if policy == 's,S' or policy == 'R,s,S' else 0)
+R = st.number_input("Review Period (R):", value=10 if policy == 'R,s,Q' or policy == 'R,s,S' else 0)
 
 if st.button("Run Simulation"):
     demand = generate_demand(distribution, duration, mean_demand, std_dev)
-
     inventory_levels, orders, in_transit, shortages, on_hand, service_level_achieved = simulate_inventory(
         policy, duration, demand, s, Q, S, R, service_level, std_dev)
 
-    # Convert results to integers
-    inventory_levels = inventory_levels.astype(int)
-    orders = orders.astype(int)
-    in_transit = in_transit.astype(int)
-    shortages = shortages.astype(int)
-    on_hand = on_hand.astype(int)
-
     # Plotting results
-    st.pyplot(plt.plot(inventory_levels, label='Inventory Level'))
-    st.pyplot(plt.plot(orders, label='Orders Placed', linestyle='--'))
-    st.pyplot(plt.plot(on_hand, label='On Hand Inventory', linestyle='--'))
-    st.pyplot(plt.plot(shortages, label='Shortages', linestyle='-.'))
-    plt.title(f'Inventory Simulation with Policy: {policy}')
-    plt.xlabel('Time (days)')
-    plt.ylabel('Units')
-    plt.legend()
-    plt.grid(True)
-    st.pyplot(plt.show())
+    fig, ax = plt.subplots()
+    ax.plot(inventory_levels, label='Inventory Level')
+    ax.plot(orders, label='Orders Placed', linestyle='--')
+    ax.plot(on_hand, label='On Hand Inventory', linestyle='--')
+    ax.plot(shortages, label='Shortages', linestyle='-.')
+    ax.set_title(f'Inventory Simulation with Policy: {policy}')
+    ax.set_xlabel('Time (days)')
+    ax.set_ylabel('Units')
+    ax.legend()
+    ax.grid(True)
+    st.pyplot(fig)
 
-    # Writing results to DataFrame
+    # Writing results to CSV
     results_df = pd.DataFrame({
         'Time': range(duration),
         'Inventory Level': inventory_levels,
@@ -111,10 +104,8 @@ if st.button("Run Simulation"):
         'Shortages': shortages,
         'On Hand': on_hand
     })
-
-    # Writing results to CSV in Google Drive
-    file_path = '/content/drive/My Drive/inventorycontrol/inventorycontrol.csv'
+    file_path = 'inventorycontrol.csv'
     results_df.to_csv(file_path, index=False)
     st.success(f"Results saved to {file_path}")
     st.write(f"Achieved Service Level: {service_level_achieved:.2f}%")
-
+    st.download_button('Download CSV', data=results_df.to_csv(index=False), file_name=file_path, mime='text/csv')
