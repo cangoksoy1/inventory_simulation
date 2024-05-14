@@ -3,6 +3,11 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.stats import norm, poisson
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.base import MIMEBase
+from email import encoders
+from email.mime.text import MIMEText
 
 # Define demand generation based on distribution choice
 def generate_demand(distribution, duration, mean, std_dev):
@@ -63,11 +68,33 @@ def simulate_inventory(policy, duration, demand, s, Q, S, R, service_level_targe
     service_level_achieved = (1 - np.sum(shortages) / np.sum(demand)) * 100
     return inventory_levels.astype(int), orders.astype(int), in_transit.astype(int), shortages.astype(int), on_hand.astype(int), service_level_achieved
 
-st.title("Inventory Simulation")
+def send_email(file_path, to_email):
+    from_email = "facilityreport1@gmail.com"
+    password = "cancan2002"
 
-# Initialize session state
-if 'show_parameters' not in st.session_state:
-    st.session_state.show_parameters = False
+    msg = MIMEMultipart()
+    msg['From'] = from_email
+    msg['To'] = to_email
+    msg['Subject'] = "Inventory Simulation Results"
+
+    body = "Please find the attached inventory simulation results."
+    msg.attach(MIMEText(body, 'plain'))
+
+    attachment = open(file_path, "rb")
+    part = MIMEBase('application', 'octet-stream')
+    part.set_payload(attachment.read())
+    encoders.encode_base64(part)
+    part.add_header('Content-Disposition', f'attachment; filename= {file_path}')
+    msg.attach(part)
+
+    server = smtplib.SMTP('smtp.gmail.com', 587)
+    server.starttls()
+    server.login(from_email, password)
+    text = msg.as_string()
+    server.sendmail(from_email, to_email, text)
+    server.quit()
+
+st.title("Inventory Simulation")
 
 # Widgets for input parameters
 duration = st.number_input("Duration (days)", value=30)
@@ -76,61 +103,65 @@ std_dev = st.number_input("Demand Std Dev:", value=10)
 policy = st.selectbox("Policy:", ["s,Q", "R,s,Q", "s,S", "R,s,S"])
 distribution = st.selectbox("Demand Distribution:", ["Normal", "Poisson", "Uniform"])
 service_level = st.slider('Service Level:', 0.80, 1.00, 0.95)
+email = st.text_input("Email Address:", "")
 
-if st.button("Further Calculation"):
-    st.session_state.show_parameters = True
-
-if st.session_state.show_parameters:
+further_calc = st.button("Further Calculation")
+if further_calc:
     if policy == "s,Q":
         s = st.number_input("Reorder Point (s):", value=20)
         Q = st.number_input("Order Quantity (Q):", value=40)
-        R = None
-        S = None
+        S, R = 0, 0
+    elif policy == "s,S":
+        s = st.number_input("Reorder Point (s):", value=20)
+        S = st.number_input("Order-up-to Level (S):", value=100)
+        Q, R = 0, 0
     elif policy == "R,s,Q":
         R = st.number_input("Review Period (R):", value=10)
         s = st.number_input("Reorder Point (s):", value=20)
         Q = st.number_input("Order Quantity (Q):", value=40)
-        S = None
-    elif policy == "s,S":
-        s = st.number_input("Reorder Point (s):", value=20)
-        S = st.number_input("Order-up-to Level (S):", value=100)
-        R = None
-        Q = None
+        S = 0
     elif policy == "R,s,S":
         R = st.number_input("Review Period (R):", value=10)
         s = st.number_input("Reorder Point (s):", value=20)
         S = st.number_input("Order-up-to Level (S):", value=100)
-        Q = None
+        Q = 0
 
-    if st.button("Run Simulation"):
-        demand = generate_demand(distribution, duration, mean_demand, std_dev)
-        inventory_levels, orders, in_transit, shortages, on_hand, service_level_achieved = simulate_inventory(
-            policy, duration, demand, s, Q, S, R, service_level, std_dev)
+if st.button("Run Simulation"):
+    demand = generate_demand(distribution, duration, mean_demand, std_dev)
+    inventory_levels, orders, in_transit, shortages, on_hand, service_level_achieved = simulate_inventory(
+        policy, duration, demand, s, Q, S, R, service_level, std_dev)
 
-        # Plotting results
-        fig, ax = plt.subplots()
-        ax.plot(inventory_levels, label='Inventory Level')
-        ax.plot(orders, label='Orders Placed', linestyle='--')
-        ax.plot(on_hand, label='On Hand Inventory', linestyle='--')
-        ax.plot(shortages, label='Shortages', linestyle='-.')
-        ax.set_title(f'Inventory Simulation with Policy: {policy}')
-        ax.set_xlabel('Time (days)')
-        ax.set_ylabel('Units')
-        ax.legend()
-        ax.grid(True)
-        st.pyplot(fig)
+    # Plotting results
+    fig, ax = plt.subplots()
+    ax.plot(inventory_levels, label='Inventory Level')
+    ax.plot(orders, label='Orders Placed', linestyle='--')
+    ax.plot(on_hand, label='On Hand Inventory', linestyle='--')
+    ax.plot(shortages, label='Shortages', linestyle='-.')
+    ax.set_title(f'Inventory Simulation with Policy: {policy}')
+    ax.set_xlabel('Time (days)')
+    ax.set_ylabel('Units')
+    ax.legend()
+    ax.grid(True)
+    st.pyplot(fig)
 
-        # Writing results to CSV
-        results_df = pd.DataFrame({
-            'Time': range(duration),
-            'Inventory Level': inventory_levels,
-            'Orders Placed': orders,
-            'In Transit': in_transit,
-            'Shortages': shortages,
-            'On Hand': on_hand
-        })
-        file_path = 'inventorycontrol.csv'
-        results_df.to_csv(file_path, index=False)
-        st.success(f"Results saved to {file_path}")
-        st.write(f"Achieved Service Level: {service_level_achieved:.2f}%")
-        st.download_button('Download CSV', data=results_df.to_csv(index=False), file_name=file_path, mime='text/csv')
+    # Writing results to CSV
+    results_df = pd.DataFrame({
+        'Time': range(duration),
+        'Inventory Level': inventory_levels,
+        'Orders Placed': orders,
+        'In Transit': in_transit,
+        'Shortages': shortages,
+        'On Hand': on_hand
+    })
+    file_path = 'inventorycontrol.csv'
+    results_df.to_csv(file_path, index=False)
+    st.success(f"Results saved to {file_path}")
+    st.write(f"Achieved Service Level: {service_level_achieved:.2f}%")
+    st.download_button('Download CSV', data=results_df.to_csv(index=False), file_name=file_path, mime='text/csv')
+
+    if email:
+        if st.button("Send Report to My Email Address"):
+            send_email(file_path, email)
+            st.success(f"Report sent to {email}")
+
+
