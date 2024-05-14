@@ -1,33 +1,12 @@
-import smtplib
-from email.mime.multipart import MIMEMultipart
-from email.mime.base import MIMEBase
-from email import encoders
-
-def send_email(file_path, to_email):
-    from_email = "facilityreport1@gmail.com"
-    password = "cancan2002"
-
-    msg = MIMEMultipart()
-    msg['From'] = from_email
-    msg['To'] = to_email
-    msg['Subject'] = "Inventory Simulation Results"
-
-    part = MIMEBase('application', 'octet-stream')
-    part.set_payload(open(file_path, "rb").read())
-    encoders.encode_base64(part)
-    part.add_header('Content-Disposition', 'attachment; filename="inventorycontrol.csv"')
-    msg.attach(part)
-
-    server = smtplib.SMTP('smtp.gmail.com', 587)
-    server.starttls()
-    server.login(from_email, password)
-    server.sendmail(from_email, to_email, msg.as_string())
-    server.quit()
 import streamlit as st
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.stats import norm, poisson
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.base import MIMEBase
+from email import encoders
 
 # Define demand generation based on distribution choice
 def generate_demand(distribution, duration, mean, std_dev):
@@ -83,6 +62,29 @@ def simulate_inventory(policy, duration, demand, s, Q, S, R, service_level_targe
     service_level_achieved = (1 - np.sum(shortages) / np.sum(demand)) * 100
     return inventory_levels.astype(int), orders.astype(int), in_transit.astype(int), shortages.astype(int), on_hand.astype(int), service_level_achieved
 
+# Email sending function
+def send_email(file_path, to_email):
+    from_email = "facilityreport1@gmail.com"
+    password = "cancan2002"
+
+    msg = MIMEMultipart()
+    msg['From'] = from_email
+    msg['To'] = to_email
+    msg['Subject'] = "Inventory Simulation Results"
+
+    part = MIMEBase('application', 'octet-stream')
+    part.set_payload(open(file_path, "rb").read())
+    encoders.encode_base64(part)
+    part.add_header('Content-Disposition', 'attachment; filename="inventorycontrol.csv"')
+    msg.attach(part)
+
+    server = smtplib.SMTP('smtp.gmail.com', 587)
+    server.starttls()
+    server.login(from_email, password)
+    server.sendmail(from_email, to_email, msg.as_string())
+    server.quit()
+
+# Streamlit App
 st.title("Inventory Simulation")
 
 # Widgets for input parameters
@@ -93,7 +95,13 @@ policy = st.selectbox("Policy:", ["s,Q", "R,s,Q", "s,S", "R,s,S"])
 distribution = st.selectbox("Demand Distribution:", ["Normal", "Poisson", "Uniform"])
 service_level = st.slider('Service Level:', 0.80, 1.00, 0.95)
 
+if "further_calculation" not in st.session_state:
+    st.session_state.further_calculation = False
+
 if st.button("Further Calculation"):
+    st.session_state.further_calculation = True
+
+if st.session_state.further_calculation:
     if policy in ['s,Q', 'R,s,Q']:
         s = st.number_input("Reorder Point (s):", value=20)
         Q = st.number_input("Order Quantity (Q):", value=40)
