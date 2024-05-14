@@ -6,7 +6,6 @@ import matplotlib.pyplot as plt
 from scipy.stats import norm, poisson
 import os
 
-# Serve the HTML file
 def serve_html(file_path):
     with open(file_path, 'r') as file:
         return file.read()
@@ -15,9 +14,10 @@ html_file_path = os.path.join('static', 'index.html')
 st.markdown(serve_html(html_file_path), unsafe_allow_html=True)
 
 # Streamlit app content
-st.title("Inventory Control")
+st.write('<div id="streamlit_content">', unsafe_allow_html=True)
 
-# Define demand generation based on distribution choice
+st.title("Inventory Management")
+
 def generate_demand(distribution, duration, mean, std_dev):
     if distribution == "Normal":
         return np.random.normal(loc=mean, scale=std_dev, size=duration)
@@ -138,12 +138,5 @@ if st.session_state.show_parameters:
         st.success(f"Results saved to {file_path}")
         st.write(f"Achieved Service Level: {service_level_achieved:.2f}%")
         st.download_button('Download CSV', data=results_df.to_csv(index=False), file_name=file_path, mime='text/csv')
-
-
-# Load the custom HTML
-with open("static/index.html") as f:
-    html_content = f.read()
-
-# Streamlit to display the HTML
-components.html(html_content, height=600)
+        st.write('</div>', unsafe_allow_html=True)
 
