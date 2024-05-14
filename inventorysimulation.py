@@ -3,6 +3,14 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.stats import norm, poisson
+import streamlit.components.v1 as components
+
+# Load HTML
+with open("static/index.html", 'r') as html_file:
+    html_content = html_file.read()
+
+# Display HTML in Streamlit
+components.html(html_content, height=700)
 
 # Define demand generation based on distribution choice
 def generate_demand(distribution, duration, mean, std_dev):
