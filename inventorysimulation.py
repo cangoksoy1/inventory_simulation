@@ -65,6 +65,10 @@ def simulate_inventory(policy, duration, demand, s, Q, S, R, service_level_targe
 
 st.title("Inventory Simulation")
 
+# Initialize session state
+if 'show_parameters' not in st.session_state:
+    st.session_state.show_parameters = False
+
 # Widgets for input parameters
 duration = st.number_input("Duration (days)", value=30)
 mean_demand = st.number_input("Demand Mean:", value=50)
@@ -74,6 +78,9 @@ distribution = st.selectbox("Demand Distribution:", ["Normal", "Poisson", "Unifo
 service_level = st.slider('Service Level:', 0.80, 1.00, 0.95)
 
 if st.button("Further Calculation"):
+    st.session_state.show_parameters = True
+
+if st.session_state.show_parameters:
     if policy == "s,Q":
         s = st.number_input("Reorder Point (s):", value=20)
         Q = st.number_input("Order Quantity (Q):", value=40)
