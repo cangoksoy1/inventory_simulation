@@ -8,15 +8,17 @@
 </head>
 <body>
     <div class="background-container">
-        <img src="facility.png" alt="Facility Background">
+        <img src="static/images/facility.png" alt="Facility Background">
         <button class="manage-inventory-btn" onclick="manageInventory()">Manage Inventory</button>
     </div>
+
     <script>
         function manageInventory() {
             document.querySelector('.background-container').style.display = 'none';
             document.querySelector('.app-container').style.display = 'block';
         }
     </script>
+
     <div class="app-container" style="display:none;">
         <!-- Streamlit app content will go here -->
         {{ streamlit_content }}
