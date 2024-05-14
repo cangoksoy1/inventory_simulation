@@ -61,7 +61,7 @@ def simulate_inventory(policy, duration, demand, s, Q, S, R, service_level_targe
         inventory_levels[t] = max(0, inventory_levels[t])  # Ensure no negative inventory
 
     service_level_achieved = (1 - np.sum(shortages) / np.sum(demand)) * 100
-    return inventory_levels, orders, in_transit, shortages, on_hand, service_level_achieved
+    return inventory_levels.astype(int), orders.astype(int), in_transit.astype(int), shortages.astype(int), on_hand.astype(int), service_level_achieved
 
 st.title("Inventory Simulation")
 
