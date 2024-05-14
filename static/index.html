@@ -3,16 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" type="text/css" href="static/css/style.css">
-    <title>Inventory Simulation</title>
+    <title>Inventory Management</title>
+    <link rel="stylesheet" href="static/css/style.css">
 </head>
 <body>
-    <button id="manage-inventory-btn" onclick="document.getElementById('main-content').style.display='block'; this.style.display='none';">
-        Manage Inventory
-    </button>
-    <div id="main-content">
-        <!-- Streamlit content will go here -->
+    <div class="background-container">
+        <img src="facility.png" alt="Facility Background">
+        <button class="manage-inventory-btn" onclick="manageInventory()">Manage Inventory</button>
+    </div>
+    <script>
+        function manageInventory() {
+            document.querySelector('.background-container').style.display = 'none';
+            document.querySelector('.app-container').style.display = 'block';
+        }
+    </script>
+    <div class="app-container" style="display:none;">
+        <!-- Streamlit app content will go here -->
+        {{ streamlit_content }}
     </div>
 </body>
 </html>
-
