@@ -69,8 +69,8 @@ def simulate_inventory(policy, duration, demand, s, Q, S, R, service_level_targe
     return inventory_levels.astype(int), orders.astype(int), in_transit.astype(int), shortages.astype(int), on_hand.astype(int), service_level_achieved
 
 def send_email(file_path, to_email):
-    from_email = "facilityreport1@gmail.com"
-    password = "cancan2002"
+    from_email = "your_email@example.com"
+    password = "your_password"
 
     msg = MIMEMultipart()
     msg['From'] = from_email
@@ -157,11 +157,13 @@ if st.button("Run Simulation"):
     results_df.to_csv(file_path, index=False)
     st.success(f"Results saved to {file_path}")
     st.write(f"Achieved Service Level: {service_level_achieved:.2f}%")
-    st.download_button('Download CSV', data=results_df.to_csv(index=False), file_name=file_path, mime='text/csv')
-
-    if email:
+    
+    # Adding Download CSV and Email Report buttons
+    col1, col2 = st.columns(2)
+    with col1:
+        st.download_button('Download CSV', data=results_df.to_csv(index=False), file_name=file_path, mime='text/csv')
+    with col2:
         if st.button("Send Report to My Email Address"):
             send_email(file_path, email)
             st.success(f"Report sent to {email}")
-
 
