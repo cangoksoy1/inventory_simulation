@@ -1,14 +1,14 @@
-body, html {
+body {
     margin: 0;
     padding: 0;
-    height: 100%;
-    overflow: hidden;
+    font-family: Arial, sans-serif;
 }
 
 .background-container {
     position: relative;
-    height: 100%;
     width: 100%;
+    height: 100vh;
+    background-color: #f3f3f3;
 }
 
 .background-container img {
@@ -19,21 +19,29 @@ body, html {
 
 .manage-inventory-btn {
     position: absolute;
-    top: 50%;
+    top: 70%; /* Adjust this value to place the button on the computer screen */
     left: 50%;
     transform: translate(-50%, -50%);
-    padding: 10px 20px;
-    font-size: 16px;
+    padding: 15px 30px;
+    font-size: 20px;
+    background-color: #007bff;
     color: white;
-    background-color: red;
     border: none;
-    border-radius: 5px;
     cursor: pointer;
-    animation: blink 1s infinite;
+    border-radius: 5px;
+    animation: flashing 1.5s infinite;
 }
 
-@keyframes blink {
+.manage-inventory-btn:hover {
+    background-color: #0056b3;
+}
+
+@keyframes flashing {
     0% { opacity: 1; }
-    50% { opacity: 0; }
+    50% { opacity: 0.5; }
     100% { opacity: 1; }
+}
+
+.app-container {
+    padding: 20px;
 }
