@@ -1,23 +1,10 @@
 import streamlit as st
-import streamlit.components.v1 as components
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.stats import norm, poisson
-import os
 
-def serve_html(file_path):
-    with open(file_path, 'r') as file:
-        return file.read()
-
-html_file_path = os.path.join('static', 'index.html')
-st.markdown(serve_html(html_file_path), unsafe_allow_html=True)
-
-# Streamlit app content
-st.write('<div id="streamlit_content">', unsafe_allow_html=True)
-
-st.title("Inventory Management")
-
+# Define demand generation based on distribution choice
 def generate_demand(distribution, duration, mean, std_dev):
     if distribution == "Normal":
         return np.random.normal(loc=mean, scale=std_dev, size=duration)
@@ -33,8 +20,9 @@ def calculate_safety_stock(mean, std_dev, service_level):
 
 # Define a simple inventory policy simulation with stochastic lead times
 def simulate_inventory(policy, duration, demand, s, Q, S, R, service_level_target, std_dev):
-    d_mu = 5
-    d_std = 1
+    # Use the teacher's approach for stochastic lead times
+    d_mu = 5  # Mean demand
+    d_std = 1  # Standard deviation of demand
     lead_times = np.maximum(1, np.random.normal(loc=d_mu, scale=d_std, size=duration).astype(int))
 
     safety_stock = calculate_safety_stock(mean=np.mean(demand), std_dev=std_dev, service_level=service_level_target)
@@ -45,17 +33,21 @@ def simulate_inventory(policy, duration, demand, s, Q, S, R, service_level_targe
     shortages = np.zeros(duration)
     on_hand = np.zeros(duration)
 
+    # Initial inventory level
     inventory_levels[0] = S if 'S' in policy else 0
 
     for t in range(1, duration):
+        # Update on-hand inventory and shortages
         on_hand[t] = max(0, inventory_levels[t-1] - demand[t-1])
         shortages[t] = max(0, demand[t-1] - inventory_levels[t-1])
 
+        # Check for arrival of orders
         if t >= lead_times[t]:
             inventory_levels[t] = on_hand[t] + in_transit[t - lead_times[t]]
         else:
             inventory_levels[t] = on_hand[t]
 
+        # Place orders based on the selected policy
         if policy == 's,Q' and inventory_levels[t] < s:
             orders[t] = Q
             if t + lead_times[t] < duration:
@@ -66,16 +58,18 @@ def simulate_inventory(policy, duration, demand, s, Q, S, R, service_level_targe
             if t + lead_times[t] < duration:
                 in_transit[t + lead_times[t]] += order_quantity
 
-        inventory_levels[t] = max(0, inventory_levels[t])
+        inventory_levels[t] = max(0, inventory_levels[t])  # Ensure no negative inventory
 
     service_level_achieved = (1 - np.sum(shortages) / np.sum(demand)) * 100
     return inventory_levels.astype(int), orders.astype(int), in_transit.astype(int), shortages.astype(int), on_hand.astype(int), service_level_achieved
 
 st.title("Inventory Simulation")
 
+# Initialize session state
 if 'show_parameters' not in st.session_state:
     st.session_state.show_parameters = False
 
+# Widgets for input parameters
 duration = st.number_input("Duration (days)", value=30)
 mean_demand = st.number_input("Demand Mean:", value=50)
 std_dev = st.number_input("Demand Std Dev:", value=10)
@@ -113,6 +107,7 @@ if st.session_state.show_parameters:
         inventory_levels, orders, in_transit, shortages, on_hand, service_level_achieved = simulate_inventory(
             policy, duration, demand, s, Q, S, R, service_level, std_dev)
 
+        # Plotting results
         fig, ax = plt.subplots()
         ax.plot(inventory_levels, label='Inventory Level')
         ax.plot(orders, label='Orders Placed', linestyle='--')
@@ -125,6 +120,7 @@ if st.session_state.show_parameters:
         ax.grid(True)
         st.pyplot(fig)
 
+        # Writing results to CSV
         results_df = pd.DataFrame({
             'Time': range(duration),
             'Inventory Level': inventory_levels,
@@ -138,5 +134,3 @@ if st.session_state.show_parameters:
         st.success(f"Results saved to {file_path}")
         st.write(f"Achieved Service Level: {service_level_achieved:.2f}%")
         st.download_button('Download CSV', data=results_df.to_csv(index=False), file_name=file_path, mime='text/csv')
-        st.write('</div>', unsafe_allow_html=True)
-
