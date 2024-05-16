@@ -73,7 +73,7 @@ if 'show_parameters' not in st.session_state:
 duration = st.number_input("Duration (days)", value=30)
 mean_demand = st.number_input("Demand Mean:", value=50)
 std_dev = st.number_input("Demand Std Dev:", value=10)
-policy = st.selectbox("Policy:", ["s,Q", "R,s,Q", "s,S", "R,s,S"])
+policy = st.selectbox("Policy:", ["Continuous - s,Q", "Periodic - R,s,Q", "Continuous - s,S", "Periodic - R,s,S"])
 distribution = st.selectbox("Demand Distribution:", ["Normal", "Poisson", "Uniform"])
 service_level = st.slider('Service Level:', 0.80, 1.00, 0.95)
 
