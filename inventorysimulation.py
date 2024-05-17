@@ -99,22 +99,22 @@ with col1:
         st.session_state.show_parameters[0] = True
 
     if st.session_state.show_parameters[0]:
-        if policy1 == "s,Q":
+        if policy1 == "Continuous - s,Q":
             s1 = st.number_input("Reorder Point (s):", value=20, key="s1")
             Q1 = st.number_input("Order Quantity (Q):", value=40, key="Q1")
             R1 = None
             S1 = None
-        elif policy1 == "R,s,Q":
+        elif policy1 == "Periodic - R,s,Q":
             R1 = st.number_input("Review Period (R):", value=10, key="R1")
             s1 = st.number_input("Reorder Point (s):", value=20, key="s1")
             Q1 = st.number_input("Order Quantity (Q):", value=40, key="Q1")
             S1 = None
-        elif policy1 == "s,S":
+        elif policy1 == "Continuous - s,S":
             s1 = st.number_input("Reorder Point (s):", value=20, key="s1")
             S1 = st.number_input("Order-up-to Level (S):", value=100, key="S1")
             R1 = None
             Q1 = None
-        elif policy1 == "R,s,S":
+        elif policy1 == "Periodic - R,s,S":
             R1 = st.number_input("Review Period (R):", value=10, key="R1")
             s1 = st.number_input("Reorder Point (s):", value=20, key="s1")
             S1 = st.number_input("Order-up-to Level (S):", value=100, key="S1")
@@ -132,22 +132,22 @@ with col2:
         st.session_state.show_parameters[1] = True
 
     if st.session_state.show_parameters[1]:
-        if policy2 == "s,Q":
+        if policy2 == "Continuous - s,Q":
             s2 = st.number_input("Reorder Point (s):", value=20, key="s2")
             Q2 = st.number_input("Order Quantity (Q):", value=40, key="Q2")
             R2 = None
             S2 = None
-        elif policy2 == "R,s,Q":
+        elif policy2 == "Periodic - R,s,Q":
             R2 = st.number_input("Review Period (R):", value=10, key="R2")
             s2 = st.number_input("Reorder Point (s):", value=20, key="s2")
             Q2 = st.number_input("Order Quantity (Q):", value=40, key="Q2")
             S2 = None
-        elif policy2 == "s,S":
+        elif policy2 == "Continuous - s,S":
             s2 = st.number_input("Reorder Point (s):", value=20, key="s2")
             S2 = st.number_input("Order-up-to Level (S):", value=100, key="S2")
             R2 = None
             Q2 = None
-        elif policy2 == "R,s,S":
+        elif policy2 == "Periodic - R,s,S":
             R2 = st.number_input("Review Period (R):", value=10, key="R2")
             s2 = st.number_input("Reorder Point (s):", value=20, key="s2")
             S2 = st.number_input("Order-up-to Level (S):", value=100, key="S2")
