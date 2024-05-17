@@ -25,9 +25,9 @@ modal_html = """
     <button id="openModal" style="background-color: #000000; color: white; font-size: 24px; padding: 15px 30px; border: none; cursor: pointer;">Press Me</button>
 </div>
 
-<div id="myModal" class="modal" style="display:none;">
-    <div class="modal-content" style="background-color: black; color: white;">
-        <span class="close" style="color: white; font-size: 28px; cursor: pointer;">&times;</span>
+<div id="myModal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
         <div id="modal-body"></div>
     </div>
 </div>
@@ -42,24 +42,39 @@ modal_html = """
     width: 100%;
     height: 100%;
     overflow: auto;
-    background-color: rgba(0,0,0,0.4);
+    background-color: rgb(0,0,0);
+    background-color: rgba(0,0,0,0.8);
 }
 .modal-content {
+    background-color: #2c2c2c;
     margin: 15% auto;
     padding: 20px;
     border: 1px solid #888;
     width: 80%;
+    color: white;
+}
+.close {
+    color: white;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+}
+.close:hover,
+.close:focus {
+    color: #aaa;
+    text-decoration: none;
+    cursor: pointer;
 }
 </style>
 
 <script>
 document.getElementById('openModal').onclick = function() {
     document.getElementById('myModal').style.display = 'block';
-    window.parent.postMessage({isOpen: true}, '*');
+    window.parent.postMessage('button_clicked', '*');
 }
 document.querySelector('.close').onclick = function() {
     document.getElementById('myModal').style.display = 'none';
-    window.parent.postMessage({isOpen: false}, '*');
+    window.parent.postMessage('button_closed', '*');
 }
 </script>
 """
@@ -68,6 +83,8 @@ st.markdown(modal_html, unsafe_allow_html=True)
 
 # Show the system if the button is clicked
 if st.session_state.button_clicked:
+    st.markdown('<div id="inventory-management" style="display: block;">', unsafe_allow_html=True)
+
     def generate_demand(distribution, duration, mean, std_dev):
         if distribution == "Normal":
             return np.random.normal(loc=mean, scale=std_dev, size=duration)
@@ -138,8 +155,6 @@ if st.session_state.button_clicked:
         SL_period = 1 - sum(stock_out_period) / duration
 
         return inventory_levels.astype(int), orders.astype(int), in_transit.astype(int), shortages.astype(int), on_hand.astype(int), service_level_achieved, SL_alpha, SL_period
-
-    st.markdown('<div id="inventory-management" style="display: block;">', unsafe_allow_html=True)
 
     st.title("Inventory Management")
 
