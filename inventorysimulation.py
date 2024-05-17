@@ -19,6 +19,9 @@ st.markdown(page_bg_img, unsafe_allow_html=True)
 if 'button_clicked' not in st.session_state:
     st.session_state.button_clicked = False
 
+if st.button('Press Me'):
+    st.session_state.button_clicked = True
+
 # HTML and CSS for the "Press Me" button and the modal (popup)
 modal_html = """
 <div style="position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);">
