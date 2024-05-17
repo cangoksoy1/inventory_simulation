@@ -7,7 +7,7 @@ from scipy.stats import norm
 page_bg_img = """
 <style>
 [data-testid="stAppViewContainer"] {
-background-image: url("inventory_simulation/static/images/facility.png")
+background-image: url("file:///Users/cangoksoy/Desktop/facility.png")
 background-size: cover;
 }
 </style>
