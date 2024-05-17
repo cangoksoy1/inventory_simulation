@@ -177,7 +177,7 @@ if st.button("Run Simulation"):
     ax.plot(on_hand2, label=f'On Hand Inventory (Policy 2: {policy2})', linestyle='--')
     ax.plot(shortages2, label=f'Shortages (Policy 2: {policy2})', linestyle='-.')
 
-    ax.set_title(f'Inventory Simulation Comparison')
+    ax.set_title(f'Inventory Management')
     ax.set_xlabel('Time (days)')
     ax.set_ylabel('Units')
     ax.legend()
