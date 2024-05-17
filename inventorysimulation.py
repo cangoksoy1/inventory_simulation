@@ -15,32 +15,74 @@ background-size: cover;
 """
 st.markdown(page_bg_img, unsafe_allow_html=True)
 
-# Initialize session state for button click
+# Initialize session state
 if 'button_clicked' not in st.session_state:
     st.session_state.button_clicked = False
 
-# HTML for the "Press Me" button
-button_html = """
+# HTML and CSS for the "Press Me" button and the modal (popup)
+modal_html = """
 <div style="position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);">
-    <button style="background-color: #000000; color: white; font-size: 24px; padding: 15px 30px; border: none; cursor: pointer;" onclick="document.querySelector('[data-testid=stAppViewContainer]').style.display='none';">Press Me</button>
+    <button id="openModal" style="background-color: #000000; color: white; font-size: 24px; padding: 15px 30px; border: none; cursor: pointer;">Press Me</button>
 </div>
-"""
 
-# JavaScript to show the inventory management system
-script_html = """
+<div id="myModal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <div id="modal-body"></div>
+    </div>
+</div>
+
+<style>
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgb(0,0,0);
+    background-color: rgba(0,0,0,0.4);
+}
+.modal-content {
+    background-color: #fefefe;
+    margin: 15% auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 80%;
+}
+.close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+}
+.close:hover,
+.close:focus {
+    color: black;
+    text-decoration: none;
+    cursor: pointer;
+}
+</style>
+
 <script>
-document.querySelector('[data-testid=stAppViewContainer] button').onclick = function() {
+document.getElementById('openModal').onclick = function() {
+    document.getElementById('myModal').style.display = 'block';
     document.getElementById('inventory-management').style.display = 'block';
+    window.parent.postMessage('button_clicked', '*');
+}
+document.querySelector('.close').onclick = function() {
+    document.getElementById('myModal').style.display = 'none';
+    window.parent.postMessage('button_closed', '*');
 }
 </script>
 """
 
-st.markdown(button_html + script_html, unsafe_allow_html=True)
+st.markdown(modal_html, unsafe_allow_html=True)
 
-if st.button("Press Me"):
-    st.session_state.button_clicked = True
-
-if st.session_state.button_clicked:
+# Show the system if the button is clicked
+if 'button_clicked' in st.session_state and st.session_state.button_clicked:
     def generate_demand(distribution, duration, mean, std_dev):
         if distribution == "Normal":
             return np.random.normal(loc=mean, scale=std_dev, size=duration)
@@ -49,12 +91,10 @@ if st.session_state.button_clicked:
         elif distribution == "Uniform":
             return np.random.uniform(low=mean - std_dev, high=mean + std_dev, size=duration)
 
-    # Calculate safety stock
     def calculate_safety_stock(mean, std_dev, service_level):
         z = norm.ppf(service_level)
         return z * std_dev
 
-    # Define a simple inventory policy simulation with stochastic lead times
     def simulate_inventory(policy, duration, demand, s, Q, S, R, service_level_target, std_dev):
         d_mu = 5  # Mean demand
         d_std = 1  # Standard deviation of demand
@@ -114,147 +154,161 @@ if st.session_state.button_clicked:
 
         return inventory_levels.astype(int), orders.astype(int), in_transit.astype(int), shortages.astype(int), on_hand.astype(int), service_level_achieved, SL_alpha, SL_period
 
-    with st.container():
-        st.markdown('<div id="inventory-management" style="display: block;">', unsafe_allow_html=True)
-        st.title("Inventory Management")
+    st.markdown('<div id="inventory-management" style="display: block;">', unsafe_allow_html=True)
 
-        # Initialize session state
-        if 'show_parameters' not in st.session_state:
-            st.session_state.show_parameters = [False, False]
+    st.title("Inventory Management")
 
-        # Widgets for input parameters
-        col1, col2 = st.columns(2)
+    # Initialize session state
+    if 'show_parameters' not in st.session_state:
+        st.session_state.show_parameters = [False, False]
 
-        with col1:
-            st.header("Policy 1")
-            duration1 = st.number_input("Duration (days)", value=30, key="duration1")
-            mean_demand1 = st.number_input("Demand Mean:", value=50, key="mean_demand1")
-            std_dev1 = st.number_input("Demand Std Dev:", value=10, key="std_dev1")
-            policy1 = st.selectbox("Policy:", ["s,Q", "R,s,Q", "s,S", "R,s,S"], key="policy1")
-            distribution1 = st.selectbox("Demand Distribution:", ["Normal", "Poisson", "Uniform"], key="distribution1")
-            
-            if st.button("Further Calculation for Policy 1"):
-                st.session_state.show_parameters[0] = True
+    # Widgets for input parameters
+    col1, col2 = st.columns(2)
 
-            if st.session_state.show_parameters[0]:
-                if policy1 == "s,Q":
-                    s1 = st.number_input("Reorder Point (s):", value=20, key="s1")
-                    Q1 = st.number_input("Order Quantity (Q):", value=40, key="Q1")
-                    R1 = None
-                    S1 = None
-                elif policy1 == "R,s,Q":
-                    R1 = st.number_input("Review Period (R):", value=10, key="R1")
-                    s1 = st.number_input("Reorder Point (s):", value=20, key="s1")
-                    Q1 = st.number_input("Order Quantity (Q):", value=40, key="Q1")
-                    S1 = None
-                elif policy1 == "s,S":
-                    s1 = st.number_input("Reorder Point (s):", value=20, key="s1")
-                    S1 = st.number_input("Order-up-to Level (S):", value=100, key="S1")
-                    R1 = None
-                    Q1 = None
-                elif policy1 == "R,s,S":
-                    R1 = st.number_input("Review Period (R):", value=10, key="R1")
-                    s1 = st.number_input("Reorder Point (s):", value=20, key="s1")
-                    S1 = st.number_input("Order-up-to Level (S):", value=100, key="S1")
-                    Q1 = None
+    with col1:
+        st.header("Policy 1")
+        duration1 = st.number_input("Duration (days)", value=30, key="duration1")
+        mean_demand1 = st.number_input("Demand Mean:", value=50, key="mean_demand1")
+        std_dev1 = st.number_input("Demand Std Dev:", value=10, key="std_dev1")
+        policy1 = st.selectbox("Policy:", ["s,Q", "R,s,Q", "s,S", "R,s,S"], key="policy1")
+        distribution1 = st.selectbox("Demand Distribution:", ["Normal", "Poisson", "Uniform"], key="distribution1")
+        
+        if st.button("Further Calculation for Policy 1"):
+            st.session_state.show_parameters[0] = True
 
-        with col2:
-            st.header("Policy 2")
-            duration2 = st.number_input("Duration (days)", value=30, key="duration2")
-            mean_demand2 = st.number_input("Demand Mean:", value=50, key="mean_demand2")
-            std_dev2 = st.number_input("Demand Std Dev:", value=10, key="std_dev2")
-            policy2 = st.selectbox("Policy:", ["s,Q", "R,s,Q", "s,S", "R,s,S"], key="policy2")
-            distribution2 = st.selectbox("Demand Distribution:", ["Normal", "Poisson", "Uniform"], key="distribution2")
-            
-            if st.button("Further Calculation for Policy 2"):
-                st.session_state.show_parameters[1] = True
+        if st.session_state.show_parameters[0]:
+            if policy1 == "s,Q":
+                s1 = st.number_input("Reorder Point (s):", value=20, key="s1")
+                Q1 = st.number_input("Order Quantity (Q):", value=40, key="Q1")
+                R1 = None
+                S1 = None
+            elif policy1 == "R,s,Q":
+                R1 = st.number_input("Review Period (R):", value=10, key="R1")
+                s1 = st.number_input("Reorder Point (s):", value=20, key="s1")
+                Q1 = st.number_input("Order Quantity (Q):", value=40, key="Q1")
+                S1 = None
+            elif policy1 == "s,S":
+                s1 = st.number_input("Reorder Point (s):", value=20, key="s1")
+                S1 = st.number_input("Order-up-to Level (S):", value=100, key="S1")
+                R1 = None
+                Q1 = None
+            elif policy1 == "R,s,S":
+                R1 = st.number_input("Review Period (R):", value=10, key="R1")
+                s1 = st.number_input("Reorder Point (s):", value=20, key="s1")
+                S1 = st.number_input("Order-up-to Level (S):", value=100, key="S1")
+                Q1 = None
 
-            if st.session_state.show_parameters[1]:
-                if policy2 == "s,Q":
-                    s2 = st.number_input("Reorder Point (s):", value=20, key="s2")
-                    Q2 = st.number_input("Order Quantity (Q):", value=40, key="Q2")
-                    R2 = None
-                    S2 = None
-                elif policy2 == "R,s,Q":
-                    R2 = st.number_input("Review Period (R):", value=10, key="R2")
-                    s2 = st.number_input("Reorder Point (s):", value=20, key="s2")
-                    Q2 = st.number_input("Order Quantity (Q):", value=40, key="Q2")
-                    S2 = None
-                elif policy2 == "s,S":
-                    s2 = st.number_input("Reorder Point (s):", value=20, key="s2")
-                    S2 = st.number_input("Order-up-to Level (S):", value=100, key="S2")
-                    R2 = None
-                    Q2 = None
-                elif policy2 == "R,s,S":
-                    R2 = st.number_input("Review Period (R):", value=10, key="R2")
-                    s2 = st.number_input("Reorder Point (s):", value=20, key="s2")
-                    S2 = st.number_input("Order-up-to Level (S):", value=100, key="S2")
-                    Q2 = None
+    with col2:
+        st.header("Policy 2")
+        duration2 = st.number_input("Duration (days)", value=30, key="duration2")
+        mean_demand2 = st.number_input("Demand Mean:", value=50, key="mean_demand2")
+        std_dev2 = st.number_input("Demand Std Dev:", value=10, key="std_dev2")
+        policy2 = st.selectbox("Policy:", ["s,Q", "R,s,Q", "s,S", "R,s,S"], key="policy2")
+        distribution2 = st.selectbox("Demand Distribution:", ["Normal", "Poisson", "Uniform"], key="distribution2")
+        
+        if st.button("Further Calculation for Policy 2"):
+            st.session_state.show_parameters[1] = True
 
-        service_level = st.slider('Service Level:', 0.80, 1.00, 0.95)
+        if st.session_state.show_parameters[1]:
+            if policy2 == "s,Q":
+                s2 = st.number_input("Reorder Point (s):", value=20, key="s2")
+                Q2 = st.number_input("Order Quantity (Q):", value=40, key="Q2")
+                R2 = None
+                S2 = None
+            elif policy2 == "R,s,Q":
+                R2 = st.number_input("Review Period (R):", value=10, key="R2")
+                s2 = st.number_input("Reorder Point (s):", value=20, key="s2")
+                Q2 = st.number_input("Order Quantity (Q):", value=40, key="Q2")
+                S2 = None
+            elif policy2 == "s,S":
+                s2 = st.number_input("Reorder Point (s):", value=20, key="s2")
+                S2 = st.number_input("Order-up-to Level (S):", value=100, key="S2")
+                R2 = None
+                Q2 = None
+            elif policy2 == "R,s,S":
+                R2 = st.number_input("Review Period (R):", value=10, key="R2")
+                s2 = st.number_input("Reorder Point (s):", value=20, key="s2")
+                S2 = st.number_input("Order-up-to Level (S):", value=100, key="S2")
+                Q2 = None
 
-        if st.button("Run Simulation"):
-            demand1 = generate_demand(distribution1, duration1, mean_demand1, std_dev1)
-            demand2 = generate_demand(distribution2, duration2, mean_demand2, std_dev2)
-            
-            inventory_levels1, orders1, in_transit1, shortages1, on_hand1, service_level_achieved1, SL_alpha1, SL_period1 = simulate_inventory(
-                policy1, duration1, demand1, s1, Q1, S1, R1, service_level, std_dev1)
+    service_level = st.slider('Service Level:', 0.80, 1.00, 0.95)
 
-            inventory_levels2, orders2, in_transit2, shortages2, on_hand2, service_level_achieved2, SL_alpha2, SL_period2 = simulate_inventory(
-                policy2, duration2, demand2, s2, Q2, S2, R2, service_level, std_dev2)
+    if st.button("Run Simulation"):
+        demand1 = generate_demand(distribution1, duration1, mean_demand1, std_dev1)
+        demand2 = generate_demand(distribution2, duration2, mean_demand2, std_dev2)
+        
+        inventory_levels1, orders1, in_transit1, shortages1, on_hand1, service_level_achieved1, SL_alpha1, SL_period1 = simulate_inventory(
+            policy1, duration1, demand1, s1, Q1, S1, R1, service_level, std_dev1)
 
-            # Plotting results
-            fig, ax = plt.subplots()
-            ax.plot(inventory_levels1, label=f'Inventory Level (Policy 1: {policy1})')
-            ax.plot(orders1, label=f'Orders Placed (Policy 1: {policy1})', linestyle='--')
-            ax.plot(on_hand1, label=f'On Hand Inventory (Policy 1: {policy1})', linestyle='--')
-            ax.plot(shortages1, label=f'Shortages (Policy 1: {policy1})', linestyle='-.')
+        inventory_levels2, orders2, in_transit2, shortages2, on_hand2, service_level_achieved2, SL_alpha2, SL_period2 = simulate_inventory(
+            policy2, duration2, demand2, s2, Q2, S2, R2, service_level, std_dev2)
 
-            ax.plot(inventory_levels2, label=f'Inventory Level (Policy 2: {policy2})')
-            ax.plot(orders2, label=f'Orders Placed (Policy 2: {policy2})', linestyle='--')
-            ax.plot(on_hand2, label=f'On Hand Inventory (Policy 2: {policy2})', linestyle='--')
-            ax.plot(shortages2, label=f'Shortages (Policy 2: {policy2})', linestyle='-.')
+        # Plotting results
+        fig, ax = plt.subplots()
+        ax.plot(inventory_levels1, label=f'Inventory Level (Policy 1: {policy1})')
+        ax.plot(orders1, label=f'Orders Placed (Policy 1: {policy1})', linestyle='--')
+        ax.plot(on_hand1, label=f'On Hand Inventory (Policy 1: {policy1})', linestyle='--')
+        ax.plot(shortages1, label=f'Shortages (Policy 1: {policy1})', linestyle='-.')
 
-            ax.set_title(f'Inventory Simulation Comparison')
-            ax.set_xlabel('Time (days)')
-            ax.set_ylabel('Units')
-            ax.legend()
-            ax.grid(True)
-            st.pyplot(fig)
+        ax.plot(inventory_levels2, label=f'Inventory Level (Policy 2: {policy2})')
+        ax.plot(orders2, label=f'Orders Placed (Policy 2: {policy2})', linestyle='--')
+        ax.plot(on_hand2, label=f'On Hand Inventory (Policy 2: {policy2})', linestyle='--')
+        ax.plot(shortages2, label=f'Shortages (Policy 2: {policy2})', linestyle='-.')
 
-            # Writing results to CSV
-            results_df1 = pd.DataFrame({
-                'Time': range(duration1),
-                'Inventory Level': inventory_levels1,
-                'Orders Placed': orders1,
-                'In Transit': in_transit1,
-                'Shortages': shortages1,
-                'On Hand': on_hand1
-            })
+        ax.set_title(f'Inventory Simulation Comparison')
+        ax.set_xlabel('Time (days)')
+        ax.set_ylabel('Units')
+        ax.legend()
+        ax.grid(True)
+        st.pyplot(fig)
 
-            results_df2 = pd.DataFrame({
-                'Time': range(duration2),
-                'Inventory Level': inventory_levels2,
-                'Orders Placed': orders2,
-                'In Transit': in_transit2,
-                'Shortages': shortages2,
-                'On Hand': on_hand2
-            })
+        # Writing results to CSV
+        results_df1 = pd.DataFrame({
+            'Time': range(duration1),
+            'Inventory Level': inventory_levels1,
+            'Orders Placed': orders1,
+            'In Transit': in_transit1,
+            'Shortages': shortages1,
+            'On Hand': on_hand1
+        })
 
-            # Ensure sheet names are valid by removing any special characters
-            valid_policy1 = ''.join(e for e in policy1 if e.isalnum())
-            valid_policy2 = ''.join(e for e in policy2 if e.isalnum())
+        results_df2 = pd.DataFrame({
+            'Time': range(duration2),
+            'Inventory Level': inventory_levels2,
+            'Orders Placed': orders2,
+            'In Transit': in_transit2,
+            'Shortages': shortages2,
+            'On Hand': on_hand2
+        })
 
-            file_path = 'inventorycontrol_comparison.xlsx'
-            with pd.ExcelWriter(file_path) as writer:
-                results_df1.to_excel(writer, sheet_name=f'Policy1_{valid_policy1}', index=False)
-                results_df2.to_excel(writer, sheet_name=f'Policy2_{valid_policy2}', index=False)
+        # Ensure sheet names are valid by removing any special characters
+        valid_policy1 = ''.join(e for e in policy1 if e.isalnum())
+        valid_policy2 = ''.join(e for e in policy2 if e.isalnum())
 
-            st.success(f"Results saved to {file_path}")
-            st.write(f"Service Level for Policy 1: {service_level_achieved1:.2f}% (Cycle: {SL_alpha1:.2f}, Period: {SL_period1:.2f})")
-            st.write(f"Service Level for Policy 2: {service_level_achieved2:.2f}% (Cycle: {SL_alpha2:.2f}, Period: {SL_period2:.2f})")
-            st.download_button('Download Comparison Report', data=open(file_path, 'rb').read(), file_name=file_path, mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        file_path = 'inventorycontrol_comparison.xlsx'
+        with pd.ExcelWriter(file_path) as writer:
+            results_df1.to_excel(writer, sheet_name=f'Policy1_{valid_policy1}', index=False)
+            results_df2.to_excel(writer, sheet_name=f'Policy2_{valid_policy2}', index=False)
 
-        st.markdown('</div>', unsafe_allow_html=True)
-else:
-    st.markdown('<div id="inventory-management" style="display: none;">', unsafe_allow_html=True)
+        st.success(f"Results saved to {file_path}")
+        st.write(f"Service Level for Policy 1: {service_level_achieved1:.2f}% (Cycle: {SL_alpha1:.2f}, Period: {SL_period1:.2f})")
+        st.write(f"Service Level for Policy 2: {service_level_achieved2:.2f}% (Cycle: {SL_alpha2:.2f}, Period: {SL_period2:.2f})")
+        st.download_button('Download Comparison Report', data=open(file_path, 'rb').read(), file_name=file_path, mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    
+    st.markdown('</div>', unsafe_allow_html=True)
+
+# JavaScript to send message to Streamlit when button is clicked
+js_code = """
+<script>
+const streamlit = window.parent;
+const button = document.getElementById('openModal');
+button.addEventListener('click', () => {
+    streamlit.postMessage({isOpen: true}, '*');
+});
+const closeButton = document.querySelector('.close');
+closeButton.addEventListener('click', () => {
+    streamlit.postMessage({isOpen: false}, '*');
+});
+</script>
+"""
+st.markdown(js_code, unsafe_allow_html=True)
