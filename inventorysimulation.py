@@ -4,6 +4,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.stats import norm
 
+# Set the background image
 page_bg_img = """
 <style>
 [data-testid="stAppViewContainer"] {
@@ -15,10 +16,14 @@ background-size: cover;
 
 st.markdown(page_bg_img, unsafe_allow_html=True)
 
+# Check if the "Press Me" button has been clicked
+if 'button_clicked' not in st.session_state:
+    st.session_state.button_clicked = False
+
 # HTML for the "Press Me" button
 button_html = """
-<div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">
-    <button style="background-color: #008CBA; color: white; font-size: 24px; padding: 15px 30px; border: none; cursor: pointer; animation: blink-animation 1.5s steps(5, start) infinite;" onclick="document.getElementById('inventory-management').style.display = 'block'; this.style.display = 'none';">Press Me</button>
+<div style="position: absolute; top: 36%; left: 46%; transform: translate(-50%, -50%);">
+    <button style="background-color: #008CBA; color: white; font-size: 24px; padding: 15px 30px; border: none; cursor: pointer; animation: blink-animation 1.5s steps(5, start) infinite;" onclick="window.location.href='/#inventory-management';">Press Me</button>
 </div>
 <style>
 @keyframes blink-animation {
@@ -32,8 +37,8 @@ button_html = """
 st.markdown(button_html, unsafe_allow_html=True)
 
 # Container for the inventory management system
-with st.container():
-    st.markdown('<div id="inventory-management" style="display: none;">', unsafe_allow_html=True)
+if st.session_state.button_clicked:
+    st.markdown('<div id="inventory-management" style="display: block;">', unsafe_allow_html=True)
 
     st.title("Inventory Management")
 
@@ -174,4 +179,8 @@ with st.container():
         st.write(f"Service Level for Policy 2: {service_level_achieved2:.2f}% (Cycle: {SL_alpha2:.2f}, Period: {SL_period2:.2f})")
         st.download_button('Download Comparison Report', data=open(file_path, 'rb').read(), file_name=file_path, mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
 
+    st.markdown('</div>', unsafe_allow_html=True)
 
+else:
+    if st.button("Press Me"):
+        st.session_state.button_clicked = True
