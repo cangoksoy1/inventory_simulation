@@ -3,14 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Inventory Management</title>
     <link rel="stylesheet" href="static/css/style.css">
+    <title>Inventory Management</title>
 </head>
 <body>
-    <div class="background-container"></div>
-    <div class="app-container">
-        <!-- Streamlit app content will go here -->
-        <div id="streamlit_content">{{ streamlit_content }}</div>
+    <div class="background-container">
+        <img src="static/images/facility.png" alt="Facility Background" class="background-image">
+        <button class="press-me-btn" onclick="displayInventoryManagement()">Press Me</button>
     </div>
+    <div id="inventory-management" style="display:none;">
+        <!-- Streamlit content will be injected here -->
+    </div>
+    <script>
+        function displayInventoryManagement() {
+            document.querySelector('.background-container').style.display = 'none';
+            document.getElementById('inventory-management').style.display = 'block';
+        }
+    </script>
 </body>
 </html>
