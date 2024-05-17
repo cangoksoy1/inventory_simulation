@@ -4,20 +4,42 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Inventory Management</title>
-    <link rel="stylesheet" href="static/css/style.css">
+    <style>
+        body, html {
+            height: 100%;
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: url('https://i.imgur.com/kox6xPx.png') no-repeat center center fixed;
+            background-size: cover;
+        }
+
+        .press-me-btn {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #008CBA;
+            color: white;
+            font-size: 24px;
+            padding: 15px 30px;
+            border: none;
+            cursor: pointer;
+            animation: blink-animation 1.5s steps(5, start) infinite;
+        }
+
+        @keyframes blink-animation {
+            to {
+                visibility: hidden;
+            }
+        }
+    </style>
 </head>
 <body>
-    <div class="background-container">
-        <img src="static/images/facility.png" alt="Facility Background" class="background-image">
-        <button class="press-me-btn" onclick="manageInventory()">Press Me</button>
-    </div>
-    <div id="inventory-management" style="display:none;">
-        {{ streamlit_content }}
-    </div>
+    <button class="press-me-btn" onclick="showInventoryManagement()">Press Me</button>
+
     <script>
-        function manageInventory() {
-            document.querySelector('.background-container').style.display = 'none';
-            document.getElementById('inventory-management').style.display = 'block';
+        function showInventoryManagement() {
+            window.location.href = '#policy-1';
         }
     </script>
 </body>
