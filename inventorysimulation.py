@@ -92,7 +92,7 @@ with col1:
     duration1 = st.number_input("Duration (days)", value=30, key="duration1")
     mean_demand1 = st.number_input("Demand Mean:", value=50, key="mean_demand1")
     std_dev1 = st.number_input("Demand Std Dev:", value=10, key="std_dev1")
-    policy1 = st.selectbox("Policy:", ["s,Q", "R,s,Q", "s,S", "R,s,S"], key="policy1")
+    policy1 = st.selectbox("Policy:", ["Continuous - s,Q", "Periodic - R,s,Q", "Continuous - s,S", "Periodic - R,s,S"], key="policy1")
     distribution1 = st.selectbox("Demand Distribution:", ["Normal", "Poisson", "Uniform"], key="distribution1")
 
     if st.button("Further Calculation for Policy 1"):
@@ -125,7 +125,7 @@ with col2:
     duration2 = st.number_input("Duration (days)", value=30, key="duration2")
     mean_demand2 = st.number_input("Demand Mean:", value=50, key="mean_demand2")
     std_dev2 = st.number_input("Demand Std Dev:", value=10, key="std_dev2")
-    policy2 = st.selectbox("Policy:", ["s,Q", "R,s,Q", "s,S", "R,s,S"], key="policy2")
+    policy2 = st.selectbox("Policy:", ["Continuous - s,Q", "Periodic - R,s,Q", "Continuous - s,S", "Periodic - R,s,S"], key="policy2")
     distribution2 = st.selectbox("Demand Distribution:", ["Normal", "Poisson", "Uniform"], key="distribution2")
 
     if st.button("Further Calculation for Policy 2"):
