@@ -20,25 +20,29 @@ st.markdown(page_bg_img, unsafe_allow_html=True)
 if 'button_clicked' not in st.session_state:
     st.session_state.button_clicked = False
 
-# HTML for the "Press Me" button
 button_html = """
-<div style="position: absolute; top: 36%; left: 46%; transform: translate(-50%, -50%);">
-    <button style="background-color: #008CBA; color: white; font-size: 24px; padding: 15px 30px; border: none; cursor: pointer; animation: blink-animation 1.5s steps(5, start) infinite;" onclick="window.location.href='/#inventory-management';">Press Me</button>
+<div style="position: fixed; bottom: 10%; left: 50%; transform: translateX(-50%);">
+    <button id="press-me-button" style="background-color: black; color: white; font-size: 18px; padding: 10px 20px; border: none; cursor: pointer;">Press Me</button>
 </div>
-<style>
-@keyframes blink-animation {
-    to {
-        visibility: hidden;
-    }
-}
-</style>
+<script>
+    document.getElementById('press-me-button').onclick = function() {
+        document.getElementById('inventory-management').style.display = 'block';
+        this.style.display = 'none';
+    };
+</script>
 """
 
 st.markdown(button_html, unsafe_allow_html=True)
 
 # Container for the inventory management system
-if st.session_state.button_clicked:
-    st.markdown('<div id="inventory-management" style="display: block;">', unsafe_allow_html=True)
+with st.container():
+    st.markdown('<div id="inventory-management" style="display: none;">', unsafe_allow_html=True)
+
+    st.title("Inventory Management")
+
+    # Initialize session state
+    if 'show_parameters' not in st.session_state:
+        st.session_state.show_parameters = [False, False]
 
    # Define demand generation based on distribution choice
 def generate_demand(distribution, duration, mean, std_dev):
@@ -113,12 +117,6 @@ def simulate_inventory(policy, duration, demand, s, Q, S, R, service_level_targe
     SL_period = 1 - sum(stock_out_period) / duration
 
     return inventory_levels.astype(int), orders.astype(int), in_transit.astype(int), shortages.astype(int), on_hand.astype(int), service_level_achieved, SL_alpha, SL_period
-
-st.title("Inventory Management")
-
-# Initialize session state
-if 'show_parameters' not in st.session_state:
-    st.session_state.show_parameters = [False, False]
 
 # Widgets for input parameters
 col1, col2 = st.columns(2)
