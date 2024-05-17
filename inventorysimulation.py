@@ -21,65 +21,6 @@ if 'button_clicked' not in st.session_state:
 if st.button('Press Me'):
     st.session_state.button_clicked = True
 
-# HTML and CSS for the "Press Me" button and the modal (popup)
-modal_html = """
-<div style="position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);">
-    <button id="openModal" style="background-color: #000000; color: white; font-size: 24px; padding: 15px 30px; border: none; cursor: pointer;">Press Me</button>
-</div>
-
-<div id="myModal" class="modal">
-    <div class="modal-content">
-        <span class="close">&times;</span>
-        <div id="modal-body"></div>
-    </div>
-</div>
-
-<style>
-.modal {
-    display: none;
-    position: fixed;
-    z-index: 1;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    overflow: auto;
-    background-color: rgb(0,0,0);
-    background-color: rgba(0,0,0,0.8);
-}
-.modal-content {
-    background-color: #2c2c2c;
-    margin: 15% auto;
-    padding: 20px;
-    border: 1px solid #888;
-    width: 80%;
-    color: white;
-}
-.close {
-    color: white;
-    float: right;
-    font-size: 28px;
-    font-weight: bold;
-}
-.close:hover,
-.close:focus {
-    color: #aaa;
-    text-decoration: none;
-    cursor: pointer;
-}
-</style>
-
-<script>
-document.getElementById('openModal').onclick = function() {
-    document.getElementById('myModal').style.display = 'block';
-    window.parent.postMessage('button_clicked', '*');
-}
-document.querySelector('.close').onclick = function() {
-    document.getElementById('myModal').style.display = 'none';
-    window.parent.postMessage('button_closed', '*');
-}
-</script>
-"""
 
 st.markdown(modal_html, unsafe_allow_html=True)
 
