@@ -312,4 +312,3 @@ closeButton.addEventListener('click', () => {
 </script>
 """
 st.markdown(js_code, unsafe_allow_html=True)
-
