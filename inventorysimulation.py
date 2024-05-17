@@ -7,11 +7,11 @@ from scipy.stats import norm
 # Define demand generation based on distribution choice
 def generate_demand(distribution, duration, mean, std_dev):
     if distribution == "Normal":
-        return np.maximum(np.random.normal(loc=mean, scale=std_dev, size=duration), 0).astype(int)
+        return np.random.normal(loc=mean, scale=std_dev, size=duration)
     elif distribution == "Poisson":
         return np.random.poisson(lam=mean, size=duration)
     elif distribution == "Uniform":
-        return np.random.uniform(low=mean - std_dev, high=mean + std_dev, size=duration).astype(int)
+        return np.random.uniform(low=mean - std_dev, high=mean + std_dev, size=duration)
 
 # Calculate safety stock
 def calculate_safety_stock(mean, std_dev, service_level):
@@ -20,130 +20,145 @@ def calculate_safety_stock(mean, std_dev, service_level):
 
 # Define a simple inventory policy simulation with stochastic lead times
 def simulate_inventory(policy, duration, demand, s, Q, S, R, service_level_target, std_dev):
-    L, alpha = 1, 0.95
     d_mu = 5  # Mean demand
     d_std = 1  # Standard deviation of demand
-    R = R if R else 4  # Review period if not provided
+    lead_times = np.maximum(1, np.random.normal(loc=d_mu, scale=d_std, size=duration).astype(int))
 
-    z = norm.ppf(alpha)
-    x_std = d_std * np.sqrt(L + R)
-    Ss = np.round(x_std * z).astype(int)
-    Q = d_mu * R
-    Cs = Q / 2
-    Is = d_mu * L
-    S = Ss + Q + Is
+    safety_stock = calculate_safety_stock(mean=np.mean(demand), std_dev=std_dev, service_level=service_level_target)
 
-    hand = np.zeros(duration, dtype=int)
-    transit = np.zeros((duration, L + 1), dtype=int)
+    inventory_levels = np.zeros(duration)
+    orders = np.zeros(duration)
+    in_transit = np.zeros(duration)
+    shortages = np.zeros(duration)
+    on_hand = np.zeros(duration)
 
-    # Initialize hand and transit based on the initial demand
-    hand[0] = S - demand[0]
-    transit[1, -1] = demand[0]
+    # Initial inventory level
+    inventory_levels[0] = S if 'S' in policy else 0
 
+    for t in range(1, duration):
+        # Update on-hand inventory and shortages
+        on_hand[t] = max(0, inventory_levels[t-1] - demand[t-1])
+        shortages[t] = max(0, demand[t-1] - inventory_levels[t-1])
+
+        # Check for arrival of orders
+        if t >= lead_times[t]:
+            inventory_levels[t] = on_hand[t] + in_transit[t - lead_times[t]]
+        else:
+            inventory_levels[t] = on_hand[t]
+
+        # Place orders based on the selected policy
+        if policy == 's,Q' and inventory_levels[t] < s:
+            orders[t] = Q
+            if t + lead_times[t] < duration:
+                in_transit[t + lead_times[t]] += Q
+        elif policy == 's,S' and inventory_levels[t] < s:
+            order_quantity = S - inventory_levels[t]
+            orders[t] = order_quantity
+            if t + lead_times[t] < duration:
+                in_transit[t + lead_times[t]] += order_quantity
+
+        inventory_levels[t] = max(0, inventory_levels[t])  # Ensure no negative inventory
+
+    service_level_achieved = (1 - np.sum(shortages) / np.sum(demand)) * 100
+
+    # Calculate Cycle Service Level and Period Service Level
     stock_out_period = np.full(duration, False, dtype=bool)
     stock_out_cycle = []
 
     for t in range(1, duration):
-        # Update hand inventory and shortages
-        hand[t] = max(0, hand[t - 1] - demand[t - 1])
-        if hand[t] < demand[t - 1]:
-            stock_out_period[t] = True
-            stock_out_cycle.append(t)
-
-        # Check for arrival of orders
-        if t >= L:
-            hand[t] += transit[t - L, -1]
-
-        # Place orders based on the selected policy
-        if policy == 's,Q' and hand[t] < s:
-            order_qty = Q
-        elif policy == 's,S' and hand[t] < s:
-            order_qty = S - hand[t]
-        elif policy == 'R,s,Q' and t % R == 0 and hand[t] < s:
-            order_qty = Q
-        elif policy == 'R,s,S' and t % R == 0 and hand[t] < s:
-            order_qty = S - hand[t]
+        if orders[t] > 0 and shortages[t] > 0:
+            stock_out_cycle.append(True)
         else:
-            order_qty = 0
+            stock_out_cycle.append(False)
+        if shortages[t] > 0:
+            stock_out_period[t] = True
 
-        if order_qty > 0 and t + L < duration:
-            transit[t + L, -1] += order_qty
+    SL_alpha = 1 - sum(stock_out_cycle) / len(stock_out_cycle)
+    SL_period = 1 - sum(stock_out_period) / duration
 
-    service_level_achieved = (1 - np.sum(stock_out_period) / duration) * 100
+    return inventory_levels.astype(int), orders.astype(int), in_transit.astype(int), shortages.astype(int), on_hand.astype(int), service_level_achieved, SL_alpha, SL_period
 
-    # Cycle Service Level and Period Service Level
-    cycle_service_level = 1 - (len(stock_out_cycle) / duration)
-    period_service_level = 1 - (np.sum(stock_out_period) / duration)
-
-    return hand.astype(int), transit.astype(int), stock_out_period.astype(int), service_level_achieved, cycle_service_level, period_service_level
-
-st.title("Inventory Simulation")
+st.title("Inventory Simulation Comparison")
 
 # Initialize session state
 if 'show_parameters' not in st.session_state:
-    st.session_state.show_parameters = False
+    st.session_state.show_parameters = [False, False]
 
 # Widgets for input parameters
-duration = st.number_input("Duration (days)", value=30)
-mean_demand = st.number_input("Demand Mean:", value=50)
-std_dev = st.number_input("Demand Std Dev:", value=10)
-policy = st.selectbox("Policy:", ["s,Q", "R,s,Q", "s,S", "R,s,S"])
-distribution = st.selectbox("Demand Distribution:", ["Normal", "Poisson", "Uniform"])
-service_level = st.slider('Service Level:', 0.80, 1.00, 0.95)
+col1, col2 = st.columns(2)
 
-if st.button("Further Calculation"):
-    st.session_state.show_parameters = True
+with col1:
+    st.header("Policy 1")
+    duration1 = st.number_input("Duration (days)", value=30, key="duration1")
+    mean_demand1 = st.number_input("Demand Mean:", value=50, key="mean_demand1")
+    std_dev1 = st.number_input("Demand Std Dev:", value=10, key="std_dev1")
+    policy1 = st.selectbox("Policy:", ["s,Q", "R,s,Q", "s,S", "R,s,S"], key="policy1")
+    distribution1 = st.selectbox("Demand Distribution:", ["Normal", "Poisson", "Uniform"], key="distribution1")
+    service_level1 = st.slider('Service Level:', 0.80, 1.00, 0.95, key="service_level1")
 
-if st.session_state.show_parameters:
-    if policy == "s,Q":
-        s = st.number_input("Reorder Point (s):", value=20)
-        Q = st.number_input("Order Quantity (Q):", value=40)
-        R = None
-        S = None
-    elif policy == "R,s,Q":
-        R = st.number_input("Review Period (R):", value=10)
-        s = st.number_input("Reorder Point (s):", value=20)
-        Q = st.number_input("Order Quantity (Q):", value=40)
-        S = None
-    elif policy == "s,S":
-        s = st.number_input("Reorder Point (s):", value=20)
-        S = st.number_input("Order-up-to Level (S):", value=100)
-        R = None
-        Q = None
-    elif policy == "R,s,S":
-        R = st.number_input("Review Period (R):", value=10)
-        s = st.number_input("Reorder Point (s):", value=20)
-        S = st.number_input("Order-up-to Level (S):", value=100)
-        Q = None
+    if st.button("Further Calculation for Policy 1"):
+        st.session_state.show_parameters[0] = True
 
-    if st.button("Run Simulation"):
-        demand = generate_demand(distribution, duration, mean_demand, std_dev)
-        hand, transit, stock_out_period, service_level_achieved, cycle_service_level, period_service_level = simulate_inventory(
-            policy, duration, demand, s, Q, S, R, service_level, std_dev)
+    if st.session_state.show_parameters[0]:
+        if policy1 == "s,Q":
+            s1 = st.number_input("Reorder Point (s):", value=20, key="s1")
+            Q1 = st.number_input("Order Quantity (Q):", value=40, key="Q1")
+            R1 = None
+            S1 = None
+        elif policy1 == "R,s,Q":
+            R1 = st.number_input("Review Period (R):", value=10, key="R1")
+            s1 = st.number_input("Reorder Point (s):", value=20, key="s1")
+            Q1 = st.number_input("Order Quantity (Q):", value=40, key="Q1")
+            S1 = None
+        elif policy1 == "s,S":
+            s1 = st.number_input("Reorder Point (s):", value=20, key="s1")
+            S1 = st.number_input("Order-up-to Level (S):", value=100, key="S1")
+            R1 = None
+            Q1 = None
+        elif policy1 == "R,s,S":
+            R1 = st.number_input("Review Period (R):", value=10, key="R1")
+            s1 = st.number_input("Reorder Point (s):", value=20, key="s1")
+            S1 = st.number_input("Order-up-to Level (S):", value=100, key="S1")
+            Q1 = None
 
-        # Plotting results
-        fig, ax = plt.subplots()
-        ax.plot(hand, label='Hand Inventory')
-        ax.plot(transit[:, -1], label='In Transit', linestyle='--')
-        ax.set_title(f'Inventory Simulation with Policy: {policy}')
-        ax.set_xlabel('Time (days)')
-        ax.set_ylabel('Units')
-        ax.legend()
-        ax.grid(True)
-        st.pyplot(fig)
+with col2:
+    st.header("Policy 2")
+    duration2 = st.number_input("Duration (days)", value=30, key="duration2")
+    mean_demand2 = st.number_input("Demand Mean:", value=50, key="mean_demand2")
+    std_dev2 = st.number_input("Demand Std Dev:", value=10, key="std_dev2")
+    policy2 = st.selectbox("Policy:", ["s,Q", "R,s,Q", "s,S", "R,s,S"], key="policy2")
+    distribution2 = st.selectbox("Demand Distribution:", ["Normal", "Poisson", "Uniform"], key="distribution2")
+    service_level2 = st.slider('Service Level:', 0.80, 1.00, 0.95, key="service_level2")
 
-        # Writing results to CSV
-        results_df = pd.DataFrame({
-            'Time': range(duration),
-            'Hand Inventory': hand,
-            'In Transit': transit[:, -1],
-            'Stock Out Period': stock_out_period
-        })
-        file_path = 'inventorycontrol.csv'
-        results_df.to_csv(file_path, index=False)
-        st.success(f"Results saved to {file_path}")
-        st.write(f"Achieved Service Level: {service_level_achieved:.2f}%")
-        st.write(f"Cycle Service Level: {cycle_service_level:.2f}")
-        st.write(f"Period Service Level: {period_service_level:.2f}")
-        st.download_button('Download CSV', data=results_df.to_csv(index=False), file_name=file_path, mime='text/csv')
+    if st.button("Further Calculation for Policy 2"):
+        st.session_state.show_parameters[1] = True
+
+    if st.session_state.show_parameters[1]:
+        if policy2 == "s,Q":
+            s2 = st.number_input("Reorder Point (s):", value=20, key="s2")
+            Q2 = st.number_input("Order Quantity (Q):", value=40, key="Q2")
+            R2 = None
+            S2 = None
+        elif policy2 == "R,s,Q":
+            R2 = st.number_input("Review Period (R):", value=10, key="R2")
+            s2 = st.number_input("Reorder Point (s):", value=20, key="s2")
+            Q2 = st.number_input("Order Quantity (Q):", value=40, key="Q2")
+            S2 = None
+        elif policy2 == "s,S":
+            s2 = st.number_input("Reorder Point (s):", value=20, key="s2")
+            S2 = st.number_input("Order-up-to Level (S):", value=100, key="S2")
+            R2 = None
+            Q2 = None
+        elif policy2 == "R,s,S":
+            R2 = st.number_input("Review Period (R):", value=10, key="R2")
+            s2 = st.number_input("Reorder Point (s):", value=20, key="s2")
+            S2 = st.number_input("Order-up-to Level (S):", value=100, key="S2")
+            Q2 = None
+
+if st.button("Run Simulation"):
+    demand1 = generate_demand(distribution1, duration1, mean_demand1, std_dev1)
+    demand2 = generate_demand(distribution2, duration2, mean_demand2, std_dev2)
+    
+    inventory_levels1, orders1, in_transit1, shortages1, on_hand1, service_level_achieved1, SL_alpha1, SL_period1 = simulate_inventory(
+        policy1, duration1, demand1, s1, Q1, S1, R1
 
