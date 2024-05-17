@@ -153,15 +153,17 @@ with col2:
             S2 = st.number_input("Order-up-to Level (S):", value=100, key="S2")
             Q2 = None
 
+service_level = st.slider('Service Level:', 0.80, 1.00, 0.95)
+
 if st.button("Run Simulation"):
     demand1 = generate_demand(distribution1, duration1, mean_demand1, std_dev1)
     demand2 = generate_demand(distribution2, duration2, mean_demand2, std_dev2)
     
     inventory_levels1, orders1, in_transit1, shortages1, on_hand1, service_level_achieved1, SL_alpha1, SL_period1 = simulate_inventory(
-        policy1, duration1, demand1, s1, Q1, S1, R1, service_level1, std_dev1)
+        policy1, duration1, demand1, s1, Q1, S1, R1, service_level, std_dev1)
 
     inventory_levels2, orders2, in_transit2, shortages2, on_hand2, service_level_achieved2, SL_alpha2, SL_period2 = simulate_inventory(
-        policy2, duration2, demand2, s2, Q2, S2, R2, service_level2, std_dev2)
+        policy2, duration2, demand2, s2, Q2, S2, R2, service_level, std_dev2)
 
     # Plotting results
     fig, ax = plt.subplots()
