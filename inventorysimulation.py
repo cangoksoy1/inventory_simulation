@@ -4,14 +4,19 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.stats import norm
 
-page_bg_img = """
+page_bg_img = f"""
 <style>
-[data-testid="stAppViewContainer"] {
-background-image: url("file:///Users/cangoksoy/Desktop/facility.png")
+[data-testid="stAppViewContainer"] {{
+background: url("https://imgur.com/a/4BER9o3") no-repeat center center fixed;
 background-size: cover;
-}
+}}
+[data-testid="stHeader"] {{
+background: rgba(0, 0, 0, 0);
+}}
 </style>
 """
+
+st.markdown(page_bg_img, unsafe_allow_html=True)
 
 # Define demand generation based on distribution choice
 def generate_demand(distribution, duration, mean, std_dev):
