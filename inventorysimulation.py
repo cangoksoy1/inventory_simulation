@@ -25,9 +25,9 @@ modal_html = """
     <button id="openModal" style="background-color: #000000; color: white; font-size: 24px; padding: 15px 30px; border: none; cursor: pointer;">Press Me</button>
 </div>
 
-<div id="myModal" class="modal">
-    <div class="modal-content">
-        <span class="close">&times;</span>
+<div id="myModal" class="modal" style="display:none;">
+    <div class="modal-content" style="background-color: black; color: white;">
+        <span class="close" style="color: white; font-size: 28px; cursor: pointer;">&times;</span>
         <div id="modal-body"></div>
     </div>
 </div>
@@ -42,39 +42,24 @@ modal_html = """
     width: 100%;
     height: 100%;
     overflow: auto;
-    background-color: rgb(0,0,0);
     background-color: rgba(0,0,0,0.4);
 }
 .modal-content {
-    background-color: #fefefe;
     margin: 15% auto;
     padding: 20px;
     border: 1px solid #888;
     width: 80%;
-}
-.close {
-    color: #aaa;
-    float: right;
-    font-size: 28px;
-    font-weight: bold;
-}
-.close:hover,
-.close:focus {
-    color: black;
-    text-decoration: none;
-    cursor: pointer;
 }
 </style>
 
 <script>
 document.getElementById('openModal').onclick = function() {
     document.getElementById('myModal').style.display = 'block';
-    document.getElementById('inventory-management').style.display = 'block';
-    window.parent.postMessage('button_clicked', '*');
+    window.parent.postMessage({isOpen: true}, '*');
 }
 document.querySelector('.close').onclick = function() {
     document.getElementById('myModal').style.display = 'none';
-    window.parent.postMessage('button_closed', '*');
+    window.parent.postMessage({isOpen: false}, '*');
 }
 </script>
 """
@@ -82,7 +67,7 @@ document.querySelector('.close').onclick = function() {
 st.markdown(modal_html, unsafe_allow_html=True)
 
 # Show the system if the button is clicked
-if 'button_clicked' in st.session_state and st.session_state.button_clicked:
+if st.session_state.button_clicked:
     def generate_demand(distribution, duration, mean, std_dev):
         if distribution == "Normal":
             return np.random.normal(loc=mean, scale=std_dev, size=duration)
