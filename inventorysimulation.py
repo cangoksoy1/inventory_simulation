@@ -83,9 +83,6 @@ document.querySelector('.close').onclick = function() {
 
 st.markdown(modal_html, unsafe_allow_html=True)
 
-# Show the system if the button is clicked
-if st.session_state.button_clicked:
-    st.markdown('<div id="inventory-management" style="display: block;">', unsafe_allow_html=True)
 
     def generate_demand(distribution, duration, mean, std_dev):
         if distribution == "Normal":
