@@ -4,66 +4,81 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.stats import norm
 
+# Background image setup
 page_bg_img = """
 <style>
 [data-testid="stAppViewContainer"] {
 background: url("https://i.imgur.com/kox6xPx.png");
 background-size: cover;
 }
-#inventory-popup {
-  display: none;
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background: white;
-  border: 1px solid #ccc;
-  box-shadow: 0 5px 15px rgba(0,0,0,.5);
-  z-index: 1000;
-  width: 80%;
-  height: 80%;
-  overflow: auto;
-}
-#inventory-popup .close-btn {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  background: red;
-  color: white;
-  border: none;
-  padding: 5px 10px;
-  cursor: pointer;
-}
-#inventory-popup .close-btn:hover {
-  background: darkred;
-}
 </style>
 """
-
 st.markdown(page_bg_img, unsafe_allow_html=True)
 
-# HTML for the "Press Me" button and the popup container
+# HTML for the "Press Me" button
 button_html = """
-<div style="position: fixed; bottom: 20px; width: 100%; display: flex; justify-content: center;">
-    <button id="open-popup" style="background-color: black; color: white; font-size: 18px; padding: 10px 20px; border: none; cursor: pointer;">Press Me</button>
+<div style="position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);">
+    <button id="openModal" style="background-color: #000000; color: white; font-size: 24px; padding: 15px 30px; border: none; cursor: pointer;">Press Me</button>
 </div>
-<div id="inventory-popup">
-    <button class="close-btn" onclick="document.getElementById('inventory-popup').style.display='none';">X</button>
-    <div id="inventory-content"></div>
+"""
+
+# Modal (popup) style
+modal_html = """
+<div id="myModal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <div id="modal-body"></div>
+    </div>
 </div>
+<style>
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgb(0,0,0);
+    background-color: rgba(0,0,0,0.4);
+}
+.modal-content {
+    background-color: #fefefe;
+    margin: 15% auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 80%;
+}
+.close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+}
+.close:hover,
+.close:focus {
+    color: black;
+    text-decoration: none;
+    cursor: pointer;
+}
+</style>
 <script>
-document.getElementById('open-popup').onclick = function() {
-    document.getElementById('inventory-popup').style.display = 'block';
+document.getElementById('openModal').onclick = function() {
+    document.getElementById('myModal').style.display = 'block';
+}
+document.querySelector('.close').onclick = function() {
+    document.getElementById('myModal').style.display = 'none';
 }
 </script>
 """
 
-st.markdown(button_html, unsafe_allow_html=True)
+st.markdown(button_html + modal_html, unsafe_allow_html=True)
 
+# Inventory management system inside modal
 with st.container():
-    st.markdown('<div id="inventory-content">', unsafe_allow_html=True)
-
-    def generate_demand(distribution, duration, mean, std_dev):
+    st.markdown('<div id="inventory-management" style="display: none;">', unsafe_allow_html=True)
+def generate_demand(distribution, duration, mean, std_dev):
         if distribution == "Normal":
             return np.random.normal(loc=mean, scale=std_dev, size=duration)
         elif distribution == "Poisson":
@@ -135,7 +150,6 @@ with st.container():
         SL_period = 1 - sum(stock_out_period) / duration
 
         return inventory_levels.astype(int), orders.astype(int), in_transit.astype(int), shortages.astype(int), on_hand.astype(int), service_level_achieved, SL_alpha, SL_period
-
     st.title("Inventory Management")
 
     # Initialize session state
@@ -274,5 +288,5 @@ with st.container():
         st.write(f"Service Level for Policy 1: {service_level_achieved1:.2f}% (Cycle: {SL_alpha1:.2f}, Period: {SL_period1:.2f})")
         st.write(f"Service Level for Policy 2: {service_level_achieved2:.2f}% (Cycle: {SL_alpha2:.2f}, Period: {SL_period2:.2f})")
         st.download_button('Download Comparison Report', data=open(file_path, 'rb').read(), file_name=file_path, mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-
+    
     st.markdown('</div>', unsafe_allow_html=True)
