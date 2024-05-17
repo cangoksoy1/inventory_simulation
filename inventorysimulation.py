@@ -15,27 +15,74 @@ background-size: cover;
 """
 st.markdown(page_bg_img, unsafe_allow_html=True)
 
-# Initialize session state
+# HTML for the "Press Me" button and the modal
+button_html = """
+<div style="position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);">
+    <button id="openModal" style="background-color: #000000; color: white; font-size: 24px; padding: 15px 30px; border: none; cursor: pointer;">Press Me</button>
+</div>
+<div id="myModal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <div id="modal-body">
+        </div>
+    </div>
+</div>
+<style>
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.8);
+}
+.modal-content {
+    background-color: #fefefe;
+    margin: 5% auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 90%;
+    max-width: 800px;
+    color: black;
+}
+.close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+}
+.close:hover,
+.close:focus {
+    color: black;
+    text-decoration: none;
+    cursor: pointer;
+}
+</style>
+<script>
+document.getElementById('openModal').onclick = function() {
+    document.getElementById('myModal').style.display = 'block';
+}
+document.querySelector('.close').onclick = function() {
+    document.getElementById('myModal').style.display = 'none';
+}
+</script>
+"""
+
+st.markdown(button_html, unsafe_allow_html=True)
+
+# Inventory management system inside modal
 if 'button_clicked' not in st.session_state:
     st.session_state.button_clicked = False
 
-# HTML for the "Press Me" button
-button_html = """
-<div style="position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);">
-    <button onclick="document.getElementById('inventory-management').style.display = 'block';" style="background-color: #000000; color: white; font-size: 24px; padding: 15px 30px; border: none; cursor: pointer;">Press Me</button>
-</div>
-"""
-st.markdown(button_html, unsafe_allow_html=True)
+if st.button('Press Me'):
+    st.session_state.button_clicked = True
 
-# Container for the inventory management system
-with st.container():
-    st.markdown('<div id="inventory-management" style="display: none; background-color: rgba(0,0,0,0.8); padding: 20px; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 80%; height: 80%; z-index: 1000;">', unsafe_allow_html=True)
-    close_button = """
-    <button onclick="document.getElementById('inventory-management').style.display = 'none';" style="background-color: #FF0000; color: white; font-size: 20px; padding: 10px 20px; border: none; cursor: pointer; position: absolute; top: 10px; right: 10px;">X</button>
-    """
-    st.markdown(close_button, unsafe_allow_html=True)
+if st.session_state.button_clicked:
+    st.markdown('<div id="inventory-management">', unsafe_allow_html=True)
 
-    # Inventory management system code
     def generate_demand(distribution, duration, mean, std_dev):
         if distribution == "Normal":
             return np.random.normal(loc=mean, scale=std_dev, size=duration)
@@ -110,6 +157,10 @@ with st.container():
         return inventory_levels.astype(int), orders.astype(int), in_transit.astype(int), shortages.astype(int), on_hand.astype(int), service_level_achieved, SL_alpha, SL_period
 
     st.title("Inventory Management")
+
+    # Initialize session state
+    if 'show_parameters' not in st.session_state:
+        st.session_state.show_parameters = [False, False]
 
     # Widgets for input parameters
     col1, col2 = st.columns(2)
