@@ -4,6 +4,17 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.stats import norm
 
+st.markdown(
+    """
+    <style>
+    .background-container {
+        display: none;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
 # Define demand generation based on distribution choice
 def generate_demand(distribution, duration, mean, std_dev):
     if distribution == "Normal":
