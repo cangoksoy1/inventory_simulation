@@ -4,100 +4,145 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.stats import norm
 
-# Function definitions remain unchanged
-def generate_demand(distribution, duration, mean, std_dev):
-    if distribution == "Normal":
-        return np.random.normal(loc=mean, scale=std_dev, size=duration)
-    elif distribution == "Poisson":
-        return np.random.poisson(lam=mean, size=duration)
-    elif distribution == "Uniform":
-        return np.random.uniform(low=mean - std_dev, high=mean + std_dev, size=duration)
-
-def calculate_safety_stock(mean, std_dev, service_level):
-    z = norm.ppf(service_level)
-    return z * std_dev
-
-def simulate_inventory(policy, duration, demand, s, Q, S, R, service_level_target, std_dev):
-    d_mu = 5
-    d_std = 1
-    lead_times = np.maximum(1, np.random.normal(loc=d_mu, scale=d_std, size=duration).astype(int))
-
-    safety_stock = calculate_safety_stock(mean=np.mean(demand), std_dev=std_dev, service_level=service_level_target)
-
-    inventory_levels = np.zeros(duration)
-    orders = np.zeros(duration)
-    in_transit = np.zeros(duration)
-    shortages = np.zeros(duration)
-    on_hand = np.zeros(duration)
-
-    inventory_levels[0] = S if 'S' in policy else 0
-
-    for t in range(1, duration):
-        on_hand[t] = max(0, inventory_levels[t-1] - demand[t-1])
-        shortages[t] = max(0, demand[t-1] - inventory_levels[t-1])
-
-        if t >= lead_times[t]:
-            inventory_levels[t] = on_hand[t] + in_transit[t - lead_times[t]]
-        else:
-            inventory_levels[t] = on_hand[t]
-
-        if policy == 's,Q' and inventory_levels[t] < s:
-            orders[t] = Q
-            if t + lead_times[t] < duration:
-                in_transit[t + lead_times[t]] += Q
-        elif policy == 's,S' and inventory_levels[t] < s:
-            order_quantity = S - inventory_levels[t]
-            orders[t] = order_quantity
-            if t + lead_times[t] < duration:
-                in_transit[t + lead_times[t]] += order_quantity
-
-        inventory_levels[t] = max(0, inventory_levels[t])
-
-    service_level_achieved = (1 - np.sum(shortages) / np.sum(demand)) * 100
-
-    stock_out_period = np.full(duration, False, dtype=bool)
-    stock_out_cycle = []
-
-    for t in range(1, duration):
-        if orders[t] > 0 and shortages[t] > 0:
-            stock_out_cycle.append(True)
-        else:
-            stock_out_cycle.append(False)
-        if shortages[t] > 0:
-            stock_out_period[t] = True
-
-    SL_alpha = 1 - sum(stock_out_cycle) / len(stock_out_cycle)
-    SL_period = 1 - sum(stock_out_period) / duration
-
-    return inventory_levels.astype(int), orders.astype(int), in_transit.astype(int), shortages.astype(int), on_hand.astype(int), service_level_achieved, SL_alpha, SL_period
-
 page_bg_img = """
 <style>
 [data-testid="stAppViewContainer"] {
 background: url("https://i.imgur.com/kox6xPx.png");
 background-size: cover;
 }
+#inventory-popup {
+  display: none;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: white;
+  border: 1px solid #ccc;
+  box-shadow: 0 5px 15px rgba(0,0,0,.5);
+  z-index: 1000;
+  width: 80%;
+  height: 80%;
+  overflow: auto;
+}
+#inventory-popup .close-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: red;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+#inventory-popup .close-btn:hover {
+  background: darkred;
+}
 </style>
 """
 
 st.markdown(page_bg_img, unsafe_allow_html=True)
 
-# Initialize session state to track the button click
-if 'show_system' not in st.session_state:
-    st.session_state.show_system = False
+# HTML for the "Press Me" button and the popup container
+button_html = """
+<div style="position: fixed; bottom: 20px; width: 100%; display: flex; justify-content: center;">
+    <button id="open-popup" style="background-color: black; color: white; font-size: 18px; padding: 10px 20px; border: none; cursor: pointer;">Press Me</button>
+</div>
+<div id="inventory-popup">
+    <button class="close-btn" onclick="document.getElementById('inventory-popup').style.display='none';">X</button>
+    <div id="inventory-content"></div>
+</div>
+<script>
+document.getElementById('open-popup').onclick = function() {
+    document.getElementById('inventory-popup').style.display = 'block';
+}
+</script>
+"""
 
-# Press Me button
-if not st.session_state.show_system:
-    if st.button("Press Me", key="press_me_button"):
-        st.session_state.show_system = True
+st.markdown(button_html, unsafe_allow_html=True)
 
-# Display the inventory management system only if the button has been clicked
-if st.session_state.show_system:
+with st.container():
+    st.markdown('<div id="inventory-content">', unsafe_allow_html=True)
+
+    def generate_demand(distribution, duration, mean, std_dev):
+        if distribution == "Normal":
+            return np.random.normal(loc=mean, scale=std_dev, size=duration)
+        elif distribution == "Poisson":
+            return np.random.poisson(lam=mean, size=duration)
+        elif distribution == "Uniform":
+            return np.random.uniform(low=mean - std_dev, high=mean + std_dev, size=duration)
+
+    # Calculate safety stock
+    def calculate_safety_stock(mean, std_dev, service_level):
+        z = norm.ppf(service_level)
+        return z * std_dev
+
+    # Define a simple inventory policy simulation with stochastic lead times
+    def simulate_inventory(policy, duration, demand, s, Q, S, R, service_level_target, std_dev):
+        d_mu = 5  # Mean demand
+        d_std = 1  # Standard deviation of demand
+        lead_times = np.maximum(1, np.random.normal(loc=d_mu, scale=d_std, size=duration).astype(int))
+
+        safety_stock = calculate_safety_stock(mean=np.mean(demand), std_dev=std_dev, service_level=service_level_target)
+
+        inventory_levels = np.zeros(duration)
+        orders = np.zeros(duration)
+        in_transit = np.zeros(duration)
+        shortages = np.zeros(duration)
+        on_hand = np.zeros(duration)
+
+        # Initial inventory level
+        inventory_levels[0] = S if 'S' in policy else 0
+
+        for t in range(1, duration):
+            # Update on-hand inventory and shortages
+            on_hand[t] = max(0, inventory_levels[t-1] - demand[t-1])
+            shortages[t] = max(0, demand[t-1] - inventory_levels[t-1])
+
+            # Check for arrival of orders
+            if t >= lead_times[t]:
+                inventory_levels[t] = on_hand[t] + in_transit[t - lead_times[t]]
+            else:
+                inventory_levels[t] = on_hand[t]
+
+            # Place orders based on the selected policy
+            if policy == 's,Q' and inventory_levels[t] < s:
+                orders[t] = Q
+                if t + lead_times[t] < duration:
+                    in_transit[t + lead_times[t]] += Q
+            elif policy == 's,S' and inventory_levels[t] < s:
+                order_quantity = S - inventory_levels[t]
+                orders[t] = order_quantity
+                if t + lead_times[t] < duration:
+                    in_transit[t + lead_times[t]] += order_quantity
+
+            inventory_levels[t] = max(0, inventory_levels[t])  # Ensure no negative inventory
+
+        service_level_achieved = (1 - np.sum(shortages) / np.sum(demand)) * 100
+
+        # Calculate Cycle Service Level and Period Service Level
+        stock_out_period = np.full(duration, False, dtype=bool)
+        stock_out_cycle = []
+
+        for t in range(1, duration):
+            if orders[t] > 0 and shortages[t] > 0:
+                stock_out_cycle.append(True)
+            else:
+                stock_out_cycle.append(False)
+            if shortages[t] > 0:
+                stock_out_period[t] = True
+
+        SL_alpha = 1 - sum(stock_out_cycle) / len(stock_out_cycle)
+        SL_period = 1 - sum(stock_out_period) / duration
+
+        return inventory_levels.astype(int), orders.astype(int), in_transit.astype(int), shortages.astype(int), on_hand.astype(int), service_level_achieved, SL_alpha, SL_period
+
     st.title("Inventory Management")
 
+    # Initialize session state
     if 'show_parameters' not in st.session_state:
         st.session_state.show_parameters = [False, False]
 
+    # Widgets for input parameters
     col1, col2 = st.columns(2)
 
     with col1:
@@ -178,6 +223,7 @@ if st.session_state.show_system:
         inventory_levels2, orders2, in_transit2, shortages2, on_hand2, service_level_achieved2, SL_alpha2, SL_period2 = simulate_inventory(
             policy2, duration2, demand2, s2, Q2, S2, R2, service_level, std_dev2)
 
+        # Plotting results
         fig, ax = plt.subplots()
         ax.plot(inventory_levels1, label=f'Inventory Level (Policy 1: {policy1})')
         ax.plot(orders1, label=f'Orders Placed (Policy 1: {policy1})', linestyle='--')
@@ -196,6 +242,7 @@ if st.session_state.show_system:
         ax.grid(True)
         st.pyplot(fig)
 
+        # Writing results to CSV
         results_df1 = pd.DataFrame({
             'Time': range(duration1),
             'Inventory Level': inventory_levels1,
@@ -214,6 +261,7 @@ if st.session_state.show_system:
             'On Hand': on_hand2
         })
 
+        # Ensure sheet names are valid by removing any special characters
         valid_policy1 = ''.join(e for e in policy1 if e.isalnum())
         valid_policy2 = ''.join(e for e in policy2 if e.isalnum())
 
@@ -226,3 +274,5 @@ if st.session_state.show_system:
         st.write(f"Service Level for Policy 1: {service_level_achieved1:.2f}% (Cycle: {SL_alpha1:.2f}, Period: {SL_period1:.2f})")
         st.write(f"Service Level for Policy 2: {service_level_achieved2:.2f}% (Cycle: {SL_alpha2:.2f}, Period: {SL_period2:.2f})")
         st.download_button('Download Comparison Report', data=open(file_path, 'rb').read(), file_name=file_path, mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+
+    st.markdown('</div>', unsafe_allow_html=True)
