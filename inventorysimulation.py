@@ -94,8 +94,7 @@ with col1:
     std_dev1 = st.number_input("Demand Std Dev:", value=10, key="std_dev1")
     policy1 = st.selectbox("Policy:", ["s,Q", "R,s,Q", "s,S", "R,s,S"], key="policy1")
     distribution1 = st.selectbox("Demand Distribution:", ["Normal", "Poisson", "Uniform"], key="distribution1")
-    service_level = st.slider('Service Level:', 0.80, 1.00, 0.95, key="service_level")
-
+    
     if st.button("Further Calculation for Policy 1"):
         st.session_state.show_parameters[0] = True
 
@@ -128,7 +127,7 @@ with col2:
     std_dev2 = st.number_input("Demand Std Dev:", value=10, key="std_dev2")
     policy2 = st.selectbox("Policy:", ["s,Q", "R,s,Q", "s,S", "R,s,S"], key="policy2")
     distribution2 = st.selectbox("Demand Distribution:", ["Normal", "Poisson", "Uniform"], key="distribution2")
-
+    
     if st.button("Further Calculation for Policy 2"):
         st.session_state.show_parameters[1] = True
 
@@ -157,12 +156,12 @@ with col2:
 if st.button("Run Simulation"):
     demand1 = generate_demand(distribution1, duration1, mean_demand1, std_dev1)
     demand2 = generate_demand(distribution2, duration2, mean_demand2, std_dev2)
-
+    
     inventory_levels1, orders1, in_transit1, shortages1, on_hand1, service_level_achieved1, SL_alpha1, SL_period1 = simulate_inventory(
-        policy1, duration1, demand1, s1, Q1, S1, R1, service_level, std_dev1)
+        policy1, duration1, demand1, s1, Q1, S1, R1, service_level1, std_dev1)
 
     inventory_levels2, orders2, in_transit2, shortages2, on_hand2, service_level_achieved2, SL_alpha2, SL_period2 = simulate_inventory(
-        policy2, duration2, demand2, s2, Q2, S2, R2, service_level, std_dev2)
+        policy2, duration2, demand2, s2, Q2, S2, R2, service_level2, std_dev2)
 
     # Plotting results
     fig, ax = plt.subplots()
@@ -202,13 +201,18 @@ if st.button("Run Simulation"):
         'On Hand': on_hand2
     })
 
+    # Ensure sheet names are valid by removing any special characters
+    valid_policy1 = ''.join(e for e in policy1 if e.isalnum())
+    valid_policy2 = ''.join(e for e in policy2 if e.isalnum())
+
     file_path = 'inventorycontrol_comparison.xlsx'
     with pd.ExcelWriter(file_path) as writer:
-        results_df1.to_excel(writer, sheet_name=f'Policy 1: {policy1}', index=False)
-        results_df2.to_excel(writer, sheet_name=f'Policy 2: {policy2}', index=False)
+        results_df1.to_excel(writer, sheet_name=f'Policy1_{valid_policy1}', index=False)
+        results_df2.to_excel(writer, sheet_name=f'Policy2_{valid_policy2}', index=False)
 
     st.success(f"Results saved to {file_path}")
     st.write(f"Service Level for Policy 1: {service_level_achieved1:.2f}% (Cycle: {SL_alpha1:.2f}, Period: {SL_period1:.2f})")
     st.write(f"Service Level for Policy 2: {service_level_achieved2:.2f}% (Cycle: {SL_alpha2:.2f}, Period: {SL_period2:.2f})")
     st.download_button('Download Comparison Report', data=open(file_path, 'rb').read(), file_name=file_path, mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+
 
