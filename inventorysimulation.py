@@ -78,7 +78,7 @@ def simulate_inventory(policy, duration, demand, s, Q, S, R, service_level_targe
 
     return inventory_levels.astype(int), orders.astype(int), in_transit.astype(int), shortages.astype(int), on_hand.astype(int), service_level_achieved, SL_alpha, SL_period
 
-st.title("Inventory Simulation Comparison")
+st.title("Inventory Management")
 
 # Initialize session state
 if 'show_parameters' not in st.session_state:
