@@ -15,18 +15,23 @@ background-size: cover;
 """
 st.markdown(page_bg_img, unsafe_allow_html=True)
 
-# HTML for the "Press Me" button and the modal
-button_html = """
+# Initialize session state
+if 'button_clicked' not in st.session_state:
+    st.session_state.button_clicked = False
+
+# HTML and CSS for the "Press Me" button and the modal (popup)
+modal_html = """
 <div style="position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);">
     <button id="openModal" style="background-color: #000000; color: white; font-size: 24px; padding: 15px 30px; border: none; cursor: pointer;">Press Me</button>
 </div>
-<div id="myModal" class="modal" style="display: none;">
+
+<div id="myModal" class="modal">
     <div class="modal-content">
         <span class="close">&times;</span>
-        <div id="modal-body">
-        </div>
+        <div id="modal-body"></div>
     </div>
 </div>
+
 <style>
 .modal {
     display: none;
@@ -37,16 +42,15 @@ button_html = """
     width: 100%;
     height: 100%;
     overflow: auto;
-    background-color: rgba(0,0,0,0.8);
+    background-color: rgb(0,0,0);
+    background-color: rgba(0,0,0,0.4);
 }
 .modal-content {
     background-color: #fefefe;
-    margin: 5% auto;
+    margin: 15% auto;
     padding: 20px;
     border: 1px solid #888;
-    width: 90%;
-    max-width: 800px;
-    color: black;
+    width: 80%;
 }
 .close {
     color: #aaa;
@@ -61,28 +65,24 @@ button_html = """
     cursor: pointer;
 }
 </style>
+
 <script>
 document.getElementById('openModal').onclick = function() {
     document.getElementById('myModal').style.display = 'block';
+    document.getElementById('inventory-management').style.display = 'block';
+    window.parent.postMessage('button_clicked', '*');
 }
 document.querySelector('.close').onclick = function() {
     document.getElementById('myModal').style.display = 'none';
+    window.parent.postMessage('button_closed', '*');
 }
 </script>
 """
 
-st.markdown(button_html, unsafe_allow_html=True)
+st.markdown(modal_html, unsafe_allow_html=True)
 
-# Inventory management system inside modal
-if 'button_clicked' not in st.session_state:
-    st.session_state.button_clicked = False
-
-if st.button('Press Me'):
-    st.session_state.button_clicked = True
-
-if st.session_state.button_clicked:
-    st.markdown('<div id="inventory-management">', unsafe_allow_html=True)
-
+# Show the system if the button is clicked
+if 'button_clicked' in st.session_state and st.session_state.button_clicked:
     def generate_demand(distribution, duration, mean, std_dev):
         if distribution == "Normal":
             return np.random.normal(loc=mean, scale=std_dev, size=duration)
@@ -91,12 +91,10 @@ if st.session_state.button_clicked:
         elif distribution == "Uniform":
             return np.random.uniform(low=mean - std_dev, high=mean + std_dev, size=duration)
 
-    # Calculate safety stock
     def calculate_safety_stock(mean, std_dev, service_level):
         z = norm.ppf(service_level)
         return z * std_dev
 
-    # Define a simple inventory policy simulation with stochastic lead times
     def simulate_inventory(policy, duration, demand, s, Q, S, R, service_level_target, std_dev):
         d_mu = 5  # Mean demand
         d_std = 1  # Standard deviation of demand
@@ -155,6 +153,8 @@ if st.session_state.button_clicked:
         SL_period = 1 - sum(stock_out_period) / duration
 
         return inventory_levels.astype(int), orders.astype(int), in_transit.astype(int), shortages.astype(int), on_hand.astype(int), service_level_achieved, SL_alpha, SL_period
+
+    st.markdown('<div id="inventory-management" style="display: block;">', unsafe_allow_html=True)
 
     st.title("Inventory Management")
 
@@ -296,3 +296,20 @@ if st.session_state.button_clicked:
         st.download_button('Download Comparison Report', data=open(file_path, 'rb').read(), file_name=file_path, mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     
     st.markdown('</div>', unsafe_allow_html=True)
+
+# JavaScript to send message to Streamlit when button is clicked
+js_code = """
+<script>
+const streamlit = window.parent;
+const button = document.getElementById('openModal');
+button.addEventListener('click', () => {
+    streamlit.postMessage({isOpen: true}, '*');
+});
+const closeButton = document.querySelector('.close');
+closeButton.addEventListener('click', () => {
+    streamlit.postMessage({isOpen: false}, '*');
+});
+</script>
+"""
+st.markdown(js_code, unsafe_allow_html=True)
+
