@@ -15,12 +15,11 @@ background-size: cover;
 """
 st.markdown(page_bg_img, unsafe_allow_html=True)
 
+# Initialize session state
 if 'button_clicked' not in st.session_state:
     st.session_state.button_clicked = False
 
-if st.button('Press Me', key='press_me_button', on_click=lambda: st.session_state.update(button_clicked=True)):
-    st.session_state.button_clicked = True
-
+# This part creates the main content when the button is clicked
 if st.session_state.button_clicked:
     st.markdown(
         """
