@@ -259,13 +259,11 @@ if st.session_state.button_clicked:
     
     st.markdown('</div>', unsafe_allow_html=True)
 else:
-    
-    js_code = """
-    <script>
-    document.getElementById('openModal').onclick = function() {
-        const streamlit = window.parent;
-        streamlit.postMessage({isOpen: true}, '*');
-    }
-    </script>
+    button_html = """
+    <div style="position: absolute; bottom: 50px; left: 50%; transform: translateX(-50%);">
+        <button id="openModal" style="background-color: #000000; color: white; font-size: 24px; padding: 15px 30px; border: none; cursor: pointer;">Press Me</button>
+    </div>
     """
+    st.markdown(button_html, unsafe_allow_html=True)
+    
     st.markdown(js_code, unsafe_allow_html=True)
