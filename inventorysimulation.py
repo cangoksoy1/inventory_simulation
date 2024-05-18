@@ -15,39 +15,69 @@ background-size: cover;
 """
 st.markdown(page_bg_img, unsafe_allow_html=True)
 
+# Initialize session state
 if 'button_clicked' not in st.session_state:
     st.session_state.button_clicked = False
 
-if st.button('Press Me', key='press_me_button', on_click=lambda: st.session_state.update(button_clicked=True)):
-    st.session_state.button_clicked = True
+# HTML and CSS for the "Press Me" button
+button_html = """
+<div style="position: absolute; bottom: 150px; left: 50%; transform: translateX(-50%);">
+    <button id="openModal" style="background-color: #000000; color: white; font-size: 24px; padding: 15px 30px; border: none; cursor: pointer;">Press Me</button>
+</div>
 
+<div id="myModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="document.getElementById('myModal').style.display='none';">&times;</span>
+        <div id="modal-body"></div>
+    </div>
+</div>
+
+<style>
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgb(0,0,0);
+    background-color: rgba(0,0,0,0.4);
+}
+.modal-content {
+    background-color: #fefefe;
+    margin: 15% auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 80%;
+}
+.close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+}
+.close:hover,
+.close:focus {
+    color: black;
+    text-decoration: none;
+    cursor: pointer;
+}
+</style>
+
+<script>
+document.getElementById('openModal').onclick = function() {
+    document.getElementById('myModal').style.display = 'block';
+    const streamlit = window.parent;
+    streamlit.postMessage({isOpen: true}, '*');
+}
+</script>
+"""
+st.markdown(button_html, unsafe_allow_html=True)
+
+# If button is clicked, display the inventory management system
 if st.session_state.button_clicked:
-    st.markdown(
-        """
-        <style>
-        .modal-content {
-            background-color: rgba(0,0,0,0.8);
-            color: white;
-            padding: 20px;
-            border-radius: 10px;
-            width: 80%;
-            margin: 0 auto;
-            margin-top: 100px;
-        }
-        .close {
-            color: white;
-            float: right;
-            font-size: 28px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-        </style>
-        <div class="modal-content">
-            <span class="close" onclick="document.getElementById('inventory-management').style.display='none';">&times;</span>
-            <div id="inventory-management" style="display: block;">
-        """, unsafe_allow_html=True
-    )
-
     def generate_demand(distribution, duration, mean, std_dev):
         if distribution == "Normal":
             return np.random.normal(loc=mean, scale=std_dev, size=duration)
@@ -118,6 +148,8 @@ if st.session_state.button_clicked:
         SL_period = 1 - sum(stock_out_period) / duration
 
         return inventory_levels.astype(int), orders.astype(int), in_transit.astype(int), shortages.astype(int), on_hand.astype(int), service_level_achieved, SL_alpha, SL_period
+
+    st.markdown('<div id="inventory-management" style="display: block;">', unsafe_allow_html=True)
 
     st.title("Inventory Management")
 
@@ -259,22 +291,3 @@ if st.session_state.button_clicked:
         st.download_button('Download Comparison Report', data=open(file_path, 'rb').read(), file_name=file_path, mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     
     st.markdown('</div>', unsafe_allow_html=True)
-else:
-    # HTML and CSS for the "Press Me" button
-    button_html = """
-    <div style="position: absolute; bottom: 50px; left: 50%; transform: translateX(-50%);">
-        <button id="openModal" style="background-color: #000000; color: white; font-size: 24px; padding: 15px 30px; border: none; cursor: pointer;">Press Me</button>
-    </div>
-    """
-    st.markdown(button_html, unsafe_allow_html=True)
-
-    # JavaScript to handle button click
-    js_code = """
-    <script>
-    document.getElementById('openModal').onclick = function() {
-        const streamlit = window.parent;
-        streamlit.postMessage({isOpen: true}, '*');
-    }
-    </script>
-    """
-    st.markdown(js_code, unsafe_allow_html=True)
