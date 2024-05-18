@@ -15,84 +15,153 @@ background-size: cover;
 """
 st.markdown(page_bg_img, unsafe_allow_html=True)
 
+# Initialize session state
 if 'button_clicked' not in st.session_state:
     st.session_state.button_clicked = False
 
-if st.button('Press Me'):
-    st.session_state.button_clicked = True
+# HTML and CSS for the "Press Me" button and the modal (popup)
+modal_html = """
+<div style="position: absolute; left: 730px; top: 590px;">
+    <button id="openModal" style="background-color: #000000; color: white; font-size: 24px; padding: 15px 30px; border: none; cursor: pointer;">Press Me</button>
+</div>
 
-def generate_demand(distribution, duration, mean, std_dev):
-    if distribution == "Normal":
-        return np.random.normal(loc=mean, scale=std_dev, size=duration)
-    elif distribution == "Poisson":
-        return np.random.poisson(lam=mean, size=duration)
-    elif distribution == "Uniform":
-        return np.random.uniform(low=mean - std_dev, high=mean + std_dev, size=duration)
+<style>
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgb(0,0,0);
+    background-color: rgba(0,0,0,0.4);
+}
+.modal-content {
+    background-color: #fefefe;
+    margin: 15% auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 80%;
+}
+.close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+}
+.close:hover,
+.close:focus {
+    color: black;
+    text-decoration: none;
+    cursor: pointer;
+}
+</style>
 
-def calculate_safety_stock(mean, std_dev, service_level):
-    z = norm.ppf(service_level)
-    return z * std_dev
+<script>
+document.getElementById('openModal').onclick = function() {
+    document.getElementById('myModal').style.display = 'block';
+    document.getElementById('inventory-management').style.display = 'block';
+    window.parent.postMessage('button_clicked', '*');
+}
+document.querySelector('.close').onclick = function() {
+    document.getElementById('myModal').style.display = 'none';
+    window.parent.postMessage('button_closed', '*');
+}
+</script>
+"""
 
-def simulate_inventory(policy, duration, demand, s, Q, S, R, service_level_target, std_dev):
-    d_mu = 5  # Mean demand
-    d_std = 1  # Standard deviation of demand
-    lead_times = np.maximum(1, np.random.normal(loc=d_mu, scale=d_std, size=duration).astype(int))
+# Hide the "Press Me" button after it's clicked
+def hide_button():
+    hide_button_css = """
+    <style>
+    #openModal {
+        display: none;
+    }
+    </style>
+    """
+    st.markdown(hide_button_css, unsafe_allow_html=True)
 
-    safety_stock = calculate_safety_stock(mean=np.mean(demand), std_dev=std_dev, service_level=service_level_target)
-
-    inventory_levels = np.zeros(duration)
-    orders = np.zeros(duration)
-    in_transit = np.zeros(duration)
-    shortages = np.zeros(duration)
-    on_hand = np.zeros(duration)
-
-    # Initial inventory level
-    inventory_levels[0] = S if 'S' in policy else 0
-
-    for t in range(1, duration):
-        # Update on-hand inventory and shortages
-        on_hand[t] = max(0, inventory_levels[t-1] - demand[t-1])
-        shortages[t] = max(0, demand[t-1] - inventory_levels[t-1])
-
-        # Check for arrival of orders
-        if t >= lead_times[t]:
-            inventory_levels[t] = on_hand[t] + in_transit[t - lead_times[t]]
-        else:
-            inventory_levels[t] = on_hand[t]
-
-        # Place orders based on the selected policy
-        if policy == 's,Q' and inventory_levels[t] < s:
-            orders[t] = Q
-            if t + lead_times[t] < duration:
-                in_transit[t + lead_times[t]] += Q
-        elif policy == 's,S' and inventory_levels[t] < s:
-            order_quantity = S - inventory_levels[t]
-            orders[t] = order_quantity
-            if t + lead_times[t] < duration:
-                in_transit[t + lead_times[t]] += order_quantity
-
-        inventory_levels[t] = max(0, inventory_levels[t])  # Ensure no negative inventory
-
-    service_level_achieved = (1 - np.sum(shortages) / np.sum(demand)) * 100
-
-    # Calculate Cycle Service Level and Period Service Level
-    stock_out_period = np.full(duration, False, dtype=bool)
-    stock_out_cycle = []
-
-    for t in range(1, duration):
-        if orders[t] > 0 and shortages[t] > 0:
-            stock_out_cycle.append(True)
-        else:
-            stock_out_cycle.append(False)
-        if shortages[t] > 0:
-            stock_out_period[t] = True
-
-    SL_alpha = 1 - sum(stock_out_cycle) / len(stock_out_cycle)
-    SL_period = 1 - sum(stock_out_period) / duration
-
-    return inventory_levels.astype(int), orders.astype(int), in_transit.astype(int), shortages.astype(int), on_hand.astype(int), service_level_achieved, SL_alpha, SL_period
-
+# Check if the button is clicked and hide it
 if st.session_state.button_clicked:
+    hide_button()
+
+st.markdown(modal_html, unsafe_allow_html=True)
+
+# Show the system if the button is clicked
+if st.session_state.button_clicked:
+    def generate_demand(distribution, duration, mean, std_dev):
+        if distribution == "Normal":
+            return np.random.normal(loc=mean, scale=std_dev, size=duration)
+        elif distribution == "Poisson":
+            return np.random.poisson(lam=mean, size=duration)
+        elif distribution == "Uniform":
+            return np.random.uniform(low=mean - std_dev, high=mean + std_dev, size=duration)
+
+    def calculate_safety_stock(mean, std_dev, service_level):
+        z = norm.ppf(service_level)
+        return z * std_dev
+
+    def simulate_inventory(policy, duration, demand, s, Q, S, R, service_level_target, std_dev):
+        d_mu = 5  # Mean demand
+        d_std = 1  # Standard deviation of demand
+        lead_times = np.maximum(1, np.random.normal(loc=d_mu, scale=d_std, size=duration).astype(int))
+
+        safety_stock = calculate_safety_stock(mean=np.mean(demand), std_dev=std_dev, service_level=service_level_target)
+
+        inventory_levels = np.zeros(duration)
+        orders = np.zeros(duration)
+        in_transit = np.zeros(duration)
+        shortages = np.zeros(duration)
+        on_hand = np.zeros(duration)
+
+        # Initial inventory level
+        inventory_levels[0] = S if 'S' in policy else 0
+
+        for t in range(1, duration):
+            # Update on-hand inventory and shortages
+            on_hand[t] = max(0, inventory_levels[t-1] - demand[t-1])
+            shortages[t] = max(0, demand[t-1] - inventory_levels[t-1])
+
+            # Check for arrival of orders
+            if t >= lead_times[t]:
+                inventory_levels[t] = on_hand[t] + in_transit[t - lead_times[t]]
+            else:
+                inventory_levels[t] = on_hand[t]
+
+            # Place orders based on the selected policy
+            if policy == 's,Q' and inventory_levels[t] < s:
+                orders[t] = Q
+                if t + lead_times[t] < duration:
+                    in_transit[t + lead_times[t]] += Q
+            elif policy == 's,S' and inventory_levels[t] < s:
+                order_quantity = S - inventory_levels[t]
+                orders[t] = order_quantity
+                if t + lead_times[t] < duration:
+                    in_transit[t + lead_times[t]] += order_quantity
+
+            inventory_levels[t] = max(0, inventory_levels[t])  # Ensure no negative inventory
+
+        service_level_achieved = (1 - np.sum(shortages) / np.sum(demand)) * 100
+
+        # Calculate Cycle Service Level and Period Service Level
+        stock_out_period = np.full(duration, False, dtype=bool)
+        stock_out_cycle = []
+
+        for t in range(1, duration):
+            if orders[t] > 0 and shortages[t] > 0:
+                stock_out_cycle.append(True)
+            else:
+                stock_out_cycle.append(False)
+            if shortages[t] > 0:
+                stock_out_period[t] = True
+
+        SL_alpha = 1 - sum(stock_out_cycle) / len(stock_out_cycle)
+        SL_period = 1 - sum(stock_out_period) / duration
+
+        return inventory_levels.astype(int), orders.astype(int), in_transit.astype(int), shortages.astype(int), on_hand.astype(int), service_level_achieved, SL_alpha, SL_period
+
     st.markdown('<div id="inventory-management" style="display: block;">', unsafe_allow_html=True)
     st.title("Inventory Management")
 
