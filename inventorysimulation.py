@@ -28,25 +28,6 @@ st.markdown(page_bg_img, unsafe_allow_html=True)
 
 if 'button_clicked' not in st.session_state:
     st.session_state.button_clicked = False
-
-# HTML and CSS for the "Press Me" button
-button_html = """
-<div>
-    <button id="press-me-button">Press Me</button>
-</div>
-"""
-st.markdown(button_html, unsafe_allow_html=True)
-
-# JavaScript to handle button click
-js_code = """
-<script>
-document.getElementById('press-me-button').onclick = function() {
-    const streamlit = window.parent;
-    streamlit.postMessage({isOpen: true}, '*');
-}
-</script>
-"""
-st.markdown(js_code, unsafe_allow_html=True)
     
 if st.session_state.button_clicked:
     st.markdown(
