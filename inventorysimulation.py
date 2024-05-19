@@ -40,6 +40,9 @@ if st.session_state.button_clicked:
             font-weight: bold;
             cursor: pointer;
         }
+        press_me_button {
+            display: none;
+        }
         </style>
         <div class="modal-content">
             <span class="close" onclick="document.getElementById('inventory-management').style.display='none';">&times;</span>
