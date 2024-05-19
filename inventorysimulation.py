@@ -20,7 +20,7 @@ if 'button_clicked' not in st.session_state:
 
 if st.button('Press Me', key='press_me_button', on_click=lambda: st.session_state.update(button_clicked=True)):
     st.session_state.button_clicked = True
-
+    
 if st.session_state.button_clicked:
     st.markdown(
         """
