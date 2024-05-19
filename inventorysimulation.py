@@ -10,18 +10,6 @@ page_bg_img = """
 background: url("https://i.imgur.com/kox6xPx.png");
 background-size: cover;
 }
-#press-me-button {
-    position: absolute;
-    top: 300px;
-    left: 50%;
-    transform: translateX(-50%);
-    background-color: #000000;
-    color: white;
-    font-size: 24px;
-    padding: 15px 30px;
-    border: none;
-    cursor: pointer;
-}
 </style>
 """
 st.markdown(page_bg_img, unsafe_allow_html=True)
