@@ -38,8 +38,10 @@ if st.session_state.button_clicked:
         """, unsafe_allow_html=True
     )
 
-    def generate_demand(distribution, duration, mean, std_dev):
-        if distribution == "Normal":
+    def generate_demand(demand=None, distribution=None, duration=None, mean=None, std_dev=None):
+        if demand is not None:
+            return demand
+        elif distribution == "Normal":
             return np.maximum(np.random.normal(loc=mean, scale=std_dev, size=duration).round(0).astype(int), 0)
         elif distribution == "Poisson":
             return np.random.poisson(lam=mean, size=duration)
@@ -50,11 +52,7 @@ if st.session_state.button_clicked:
         z = norm.ppf(service_level)
         return z * std_dev
 
-    def simulate_inventory(policy, duration, demand, lead_time, s, Q, S, R, service_level_target, std_dev):
-        d_mu = 5  # Mean demand
-        d_std = 1  # Standard deviation of demand
-        lead_times = np.full(duration, lead_time)  # Deterministic lead time
-
+    def simulate_inventory(policy, duration, demand, lead_time, s, Q, S, R, service_level_target, std_dev, d_mu):
         safety_stock = calculate_safety_stock(mean=np.mean(demand), std_dev=std_dev, service_level=service_level_target)
 
         inventory_levels = np.zeros(duration)
@@ -72,21 +70,21 @@ if st.session_state.button_clicked:
             shortages[t] = max(0, demand[t-1] - inventory_levels[t-1])
 
             # Check for arrival of orders
-            if t >= lead_times[t]:
-                inventory_levels[t] = on_hand[t] + in_transit[t - lead_times[t]]
+            if t >= lead_time:
+                inventory_levels[t] = on_hand[t] + in_transit[t - lead_time]
             else:
                 inventory_levels[t] = on_hand[t]
 
             # Place orders based on the selected policy
             if policy == 's,Q' and inventory_levels[t] < s:
                 orders[t] = Q
-                if t + lead_times[t] < duration:
-                    in_transit[t + lead_times[t]] += Q
+                if t + lead_time < duration:
+                    in_transit[t + lead_time] += Q
             elif policy == 's,S' and inventory_levels[t] < s:
                 order_quantity = S - inventory_levels[t]
                 orders[t] = order_quantity
-                if t + lead_times[t] < duration:
-                    in_transit[t + lead_times[t]] += order_quantity
+                if t + lead_time < duration:
+                    in_transit[t + lead_time] += order_quantity
 
             inventory_levels[t] = max(0, inventory_levels[t])  # Ensure no negative inventory
 
@@ -126,6 +124,11 @@ if st.session_state.button_clicked:
         lead_time1 = st.number_input("Lead Time (days):", value=5, key="lead_time1")
         policy1 = st.selectbox("Policy:", ["s,Q", "R,s,Q", "s,S", "R,s,S"], key="policy1")
         distribution1 = st.selectbox("Demand Distribution:", ["Normal", "Poisson", "Uniform"], key="distribution1")
+        demand1_input = st.text_input("Demand (comma-separated for each period, leave blank for calculated demand)", value="", key="demand1")
+        
+        demand1 = None
+        if demand1_input:
+            demand1 = np.array([int(x) for x in demand1_input.split(",")])
         
         if st.button("Further Calculation for Policy 1"):
             st.session_state.show_parameters[0] = True
@@ -160,6 +163,11 @@ if st.session_state.button_clicked:
         lead_time2 = st.number_input("Lead Time (days):", value=5, key="lead_time2")
         policy2 = st.selectbox("Policy:", ["s,Q", "R,s,Q", "s,S", "R,s,S"], key="policy2")
         distribution2 = st.selectbox("Demand Distribution:", ["Normal", "Poisson", "Uniform"], key="distribution2")
+        demand2_input = st.text_input("Demand (comma-separated for each period, leave blank for calculated demand)", value="", key="demand2")
+
+        demand2 = None
+        if demand2_input:
+            demand2 = np.array([int(x) for x in demand2_input.split(",")])
         
         if st.button("Further Calculation for Policy 2"):
             st.session_state.show_parameters[1] = True
@@ -189,20 +197,28 @@ if st.session_state.button_clicked:
     service_level = st.slider('Service Level:', 0.80, 1.00, 0.95)
 
     if st.button("Run Simulation"):
-        demand1 = generate_demand(distribution1, duration1, mean_demand1, std_dev1)
-        demand2 = generate_demand(distribution2, duration2, mean_demand2, std_dev2)
-        
+        if demand1 is None:
+            demand1 = generate_demand(distribution=distribution1, duration=duration1, mean=mean_demand1, std_dev=std_dev1)
+        if demand2 is None:
+            demand2 = generate_demand(distribution=distribution2, duration=duration2, mean=mean_demand2, std_dev=std_dev2)
+
         inventory_levels1, orders1, in_transit1, shortages1, on_hand1, service_level_achieved1, SL_alpha1, SL_period1 = simulate_inventory(
-            policy1, duration1, demand1, lead_time1, s1, Q1, S1, R1, service_level, std_dev1)
+            policy1, duration1, demand1, lead_time1, s1, Q1, S1, R1, service_level, std_dev1, mean_demand1)
 
         inventory_levels2, orders2, in_transit2, shortages2, on_hand2, service_level_achieved2, SL_alpha2, SL_period2 = simulate_inventory(
-            policy2, duration2, demand2, lead_time2, s2, Q2, S2, R2, service_level, std_dev2)
+            policy2, duration2, demand2, lead_time2, s2, Q2, S2, R2, service_level, std_dev2, mean_demand2)
 
         # Plotting results
         fig, ax = plt.subplots()
         ax.plot(inventory_levels1, label=f'Inventory Level (Policy 1: {policy1})')
+        ax.plot(orders1, label=f'Orders Placed (Policy 1: {policy1})', linestyle='--')
+        ax.plot(on_hand1, label=f'On Hand Inventory (Policy 1: {policy1})', linestyle='--')
+        ax.plot(shortages1, label=f'Shortages (Policy 1: {policy1})', linestyle='-.')
 
         ax.plot(inventory_levels2, label=f'Inventory Level (Policy 2: {policy2})')
+        ax.plot(orders2, label=f'Orders Placed (Policy 2: {policy2})', linestyle='--')
+        ax.plot(on_hand2, label=f'On Hand Inventory (Policy 2: {policy2})', linestyle='--')
+        ax.plot(shortages2, label=f'Shortages (Policy 2: {policy2})', linestyle='-.')
 
         ax.set_title(f'Inventory Simulation Comparison')
         ax.set_xlabel('Time (days)')
@@ -243,4 +259,3 @@ if st.session_state.button_clicked:
         st.write(f"Service Level for Policy 1: {service_level_achieved1:.2f}% (Cycle: {SL_alpha1:.2f}, Period: {SL_period1:.2f})")
         st.write(f"Service Level for Policy 2: {service_level_achieved2:.2f}% (Cycle: {SL_alpha2:.2f}, Period: {SL_period2:.2f})")
         st.download_button('Download Comparison Report', data=open(file_path, 'rb').read(), file_name=file_path, mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-
