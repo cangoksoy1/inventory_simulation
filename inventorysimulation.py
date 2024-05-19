@@ -19,7 +19,7 @@ st.markdown(page_bg_img, unsafe_allow_html=True)
 if 'button_clicked' not in st.session_state:
     st.session_state.button_clicked = False
 
-# HTML and CSS for the "Press Me" button
+# HTML and CSS for the "Press Me" button (white background)
 button_html = """
 <div style="position: absolute; top: 300px; left: 50%; transform: translateX(-50%);">
     <button id="press-me-button" style="background-color: #000000; color: white; font-size: 24px; padding: 15px 30px; border: none; cursor: pointer;">Press Me</button>
@@ -281,15 +281,3 @@ if st.session_state.button_clicked:
         st.download_button('Download Comparison Report', data=open(file_path, 'rb').read(), file_name=file_path, mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     
     st.markdown('</div>', unsafe_allow_html=True)
-else:
-    # JavaScript to handle button click
-    js_code = """
-    <script>
-    document.getElementById('press-me-button').onclick = function() {
-        const streamlit = window.parent;
-        streamlit.postMessage({isOpen: true}, '*');
-        document.getElementById('press-me-button').style.display = 'none';
-    }
-    </script>
-    """
-    st.markdown(js_code, unsafe_allow_html=True)
