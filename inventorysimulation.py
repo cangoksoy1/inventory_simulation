@@ -3,6 +3,8 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.stats import norm
+from openpyxl import Workbook
+from openpyxl.styles import Font, Border, Side, PatternFill
 
 # Background image setup
 page_bg_img = """
@@ -68,8 +70,8 @@ if st.session_state.button_clicked:
     def simulate_inventory_sQ(duration, demand, mean_demand, std_dev, lead_time, service_level, s, Q):
         z = norm.ppf(service_level)
         mu_LD = mean_demand * lead_time
-        sigma_LD = std_dev * np.sqrt(lead_time)
-        s = mu_LD + z * sigma_LD
+        sigma_LD = np.sqrt(lead_time) * std_dev
+        Ss = np.round(z * sigma_LD).astype(int)
 
         hand = np.zeros(duration, dtype=int)
         transit = np.zeros((duration, lead_time + 1), dtype=int)
@@ -169,18 +171,18 @@ if st.session_state.button_clicked:
         # Writing results to CSV
         results_df1 = pd.DataFrame({
             'Time': range(duration1),
-            'Inventory Level': inventory_levels1,
-            'In-Transit': [list(x) for x in in_transit1],
-            'Shortages': shortages1,
-            'Stockouts': stock_out_period1
+            'Demand': demand_data[:duration1],
+            'On-hand': inventory_levels1,
+            'In-transit': [list(transit_row) for transit_row in in_transit1],
+            'Shortages': shortages1
         })
 
         results_df2 = pd.DataFrame({
             'Time': range(duration2),
-            'Inventory Level': inventory_levels2,
-            'In-Transit': [list(x) for x in in_transit2],
-            'Shortages': shortages2,
-            'Stockouts': stock_out_period2
+            'Demand': demand_data[:duration2],
+            'On-hand': inventory_levels2,
+            'In-transit': [list(transit_row) for transit_row in in_transit2],
+            'Shortages': shortages2
         })
 
         # Ensure sheet names are valid by removing any special characters
@@ -192,9 +194,38 @@ if st.session_state.button_clicked:
             results_df1.to_excel(writer, sheet_name=f'Policy1_{valid_policy1}', index=False)
             results_df2.to_excel(writer, sheet_name=f'Policy2_{valid_policy2}', index=False)
 
+            # Add formatting to the sheets
+            wb = writer.book
+            ws1 = wb[f'Policy1_{valid_policy1}']
+            ws2 = wb[f'Policy2_{valid_policy2}']
+
+            # Define styles
+            bold_font = Font(bold=True)
+            border = Border(left=Side(style='thin'), right=Side(style='thin'), top=Side(style='thin'), bottom=Side(style='thin'))
+            fill = PatternFill(start_color='FFFF99', end_color='FFFF99', fill_type='solid')
+
+            # Apply styles to header row
+            for cell in ws1[1]:
+                cell.font = bold_font
+                cell.border = border
+                cell.fill = fill
+            for cell in ws2[1]:
+                cell.font = bold_font
+                cell.border = border
+                cell.fill = fill
+
+            # Apply border to all cells
+            for row in ws1.iter_rows(min_row=2, max_row=ws1.max_row, min_col=1, max_col=ws1.max_column):
+                for cell in row:
+                    cell.border = border
+            for row in ws2.iter_rows(min_row=2, max_row=ws2.max_row, min_col=1, max_col=ws2.max_column):
+                for cell in row:
+                    cell.border = border
+
         st.success(f"Results saved to {file_path}")
         st.write(f"Cycle Service Level for Policy 1: {SL_alpha1:.2f}%")
         st.write(f"Period Service Level for Policy 1: {SL_period1:.2f}%")
         st.write(f"Cycle Service Level for Policy 2: {SL_alpha2:.2f}%")
         st.write(f"Period Service Level for Policy 2: {SL_period2:.2f}%")
         st.download_button('Download Comparison Report', data=open(file_path, 'rb').read(), file_name=file_path, mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+
