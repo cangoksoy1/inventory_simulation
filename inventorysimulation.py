@@ -4,12 +4,23 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.stats import norm
 
-# Background image setup
 page_bg_img = """
 <style>
 [data-testid="stAppViewContainer"] {
 background: url("https://i.imgur.com/kox6xPx.png");
 background-size: cover;
+}
+#press-me-button {
+    position: absolute;
+    top: 300px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #000000;
+    color: white;
+    font-size: 24px;
+    padding: 15px 30px;
+    border: none;
+    cursor: pointer;
 }
 </style>
 """
@@ -18,8 +29,24 @@ st.markdown(page_bg_img, unsafe_allow_html=True)
 if 'button_clicked' not in st.session_state:
     st.session_state.button_clicked = False
 
-if st.button('Press Me', key='press_me_button', on_click=lambda: st.session_state.update(button_clicked=True)):
-    st.session_state.button_clicked = True
+# HTML and CSS for the "Press Me" button
+button_html = """
+<div>
+    <button id="press-me-button">Press Me</button>
+</div>
+"""
+st.markdown(button_html, unsafe_allow_html=True)
+
+# JavaScript to handle button click
+js_code = """
+<script>
+document.getElementById('press-me-button').onclick = function() {
+    const streamlit = window.parent;
+    streamlit.postMessage({isOpen: true}, '*');
+}
+</script>
+"""
+st.markdown(js_code, unsafe_allow_html=True)
     
 if st.session_state.button_clicked:
     st.markdown(
