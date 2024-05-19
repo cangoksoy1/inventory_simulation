@@ -153,12 +153,8 @@ if st.session_state.button_clicked:
         # Plotting results
         fig, ax = plt.subplots()
         ax.plot(inventory_levels1, label=f'Inventory Level (Policy 1: {policy1})')
-        ax.plot(in_transit1[:, 0], label=f'Orders Placed (Policy 1: {policy1})', linestyle='--')
-        ax.plot(shortages1, label=f'Shortages (Policy 1: {policy1})', linestyle='-.')
 
         ax.plot(inventory_levels2, label=f'Inventory Level (Policy 2: {policy2})')
-        ax.plot(in_transit2[:, 0], label=f'Orders Placed (Policy 2: {policy2})', linestyle='--')
-        ax.plot(shortages2, label=f'Shortages (Policy 2: {policy2})', linestyle='-.')
 
         ax.set_title(f'Inventory Simulation Comparison')
         ax.set_xlabel('Time (days)')
