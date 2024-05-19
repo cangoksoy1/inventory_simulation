@@ -25,15 +25,6 @@ if st.session_state.button_clicked:
     st.markdown(
         """
         <style>
-        .modal-background {
-            background-color: rgba(0, 0, 0, 0.8);
-            width: 100%;
-            height: 50%;
-            position: fixed;
-            top: 25%;
-            left: 0;
-            z-index: 1;
-        }
         .modal-content {
             background-color: rgba(0,0,0,0.8);
             color: white;
@@ -42,11 +33,8 @@ if st.session_state.button_clicked:
             width: 80%;
             margin: 0 auto;
             margin-top: 100px;
-            z-index: 2;
-            position: relative;
         }
         </style>
-        <div class="modal-background"></div>
         <div class="modal-content">
             <div id="inventory-management" style="display: block;">
         """, unsafe_allow_html=True
@@ -263,38 +251,3 @@ if st.session_state.button_clicked:
         st.download_button('Download Comparison Report', data=open(file_path, 'rb').read(), file_name=file_path, mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
 
     st.markdown('</div>', unsafe_allow_html=True)
-
-else:
-    st.markdown(
-        """
-        <style>
-        #press-me-button {
-            position: absolute;
-            top: 300px;
-            left: 50%;
-            transform: translateX(-50%);
-            background-color: #000000;
-            color: white;
-            font-size: 24px;
-            padding: 15px 30px;
-            border: none;
-            cursor: pointer;
-        }
-        </style>
-        <div>
-            <button id="press-me-button">Press Me</button>
-        </div>
-        """, unsafe_allow_html=True
-    )
-
-    # JavaScript to handle button click
-    js_code = """
-    <script>
-    document.getElementById('press-me-button').onclick = function() {
-        const streamlit = window.parent;
-        streamlit.postMessage({isOpen: true}, '*');
-        document.getElementById('press-me-button').style.display = 'none';
-    }
-    </script>
-    """
-    st.markdown(js_code, unsafe_allow_html=True)
