@@ -188,14 +188,8 @@ if st.session_state.button_clicked:
         # Plotting results
         fig, ax = plt.subplots()
         ax.plot(inventory_levels1, label=f'Inventory Level (Policy 1: {policy1})')
-        ax.plot(orders1, label=f'Orders Placed (Policy 1: {policy1})', linestyle='--')
-        ax.plot(on_hand1, label=f'On Hand Inventory (Policy 1: {policy1})', linestyle='--')
-        ax.plot(shortages1, label=f'Shortages (Policy 1: {policy1})', linestyle='-.')
 
         ax.plot(inventory_levels2, label=f'Inventory Level (Policy 2: {policy2})')
-        ax.plot(orders2, label=f'Orders Placed (Policy 2: {policy2})', linestyle='--')
-        ax.plot(on_hand2, label=f'On Hand Inventory (Policy 2: {policy2})', linestyle='--')
-        ax.plot(shortages2, label=f'Shortages (Policy 2: {policy2})', linestyle='-.')
 
         ax.set_title(f'Inventory Simulation Comparison')
         ax.set_xlabel('Time (days)')
@@ -208,11 +202,19 @@ if st.session_state.button_clicked:
         results_df1 = pd.DataFrame({
             'Time': range(duration1),
             'Inventory Level': inventory_levels1,
+            'Orders Placed': orders1,
+            'In Transit': in_transit1,
+            'Shortages': shortages1,
+            'On Hand': on_hand1
         })
 
         results_df2 = pd.DataFrame({
             'Time': range(duration2),
             'Inventory Level': inventory_levels2,
+            'Orders Placed': orders2,
+            'In Transit': in_transit2,
+            'Shortages': shortages2,
+            'On Hand': on_hand2
         })
 
         # Ensure sheet names are valid by removing any special characters
