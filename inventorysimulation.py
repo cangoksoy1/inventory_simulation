@@ -22,8 +22,13 @@ if st.button('Press Me', key='press_me_button', on_click=lambda: st.session_stat
     st.session_state.button_clicked = True
 
 if st.session_state.button_clicked:
-    def generate_demand(duration, mean, std_dev):
-        return np.maximum(np.random.normal(loc=mean, scale=std_dev, size=duration).round(0).astype(int), 0)
+    def generate_demand(distribution, duration, mean, std_dev):
+        if distribution == "Normal":
+            return np.maximum(np.random.normal(loc=mean, scale=std_dev, size=duration).round(0).astype(int), 0)
+        elif distribution == "Poisson":
+            return np.random.poisson(lam=mean, size=duration)
+        elif distribution == "Uniform":
+            return np.random.uniform(low=mean - std_dev, high=mean + std_dev, size=duration).astype(int)
 
     def calculate_safety_stock(demand_std, lead_time, review_period, service_level):
         z = norm.ppf(service_level)
@@ -103,6 +108,7 @@ if st.session_state.button_clicked:
         std_dev1 = st.number_input("Demand Std Dev:", value=10, key="std_dev1")
         lead_time1 = st.number_input("Lead Time (days):", value=5, key="lead_time1")
         policy1 = st.selectbox("Policy:", ["R,S", "s,Q"], key="policy1")
+        distribution1 = st.selectbox("Demand Distribution:", ["Normal", "Poisson", "Uniform"], key="distribution1")
 
         if policy1 == "R,S":
             review_period1 = st.number_input("Review Period (R):", value=10, key="R1")
@@ -117,6 +123,7 @@ if st.session_state.button_clicked:
         std_dev2 = st.number_input("Demand Std Dev:", value=10, key="std_dev2")
         lead_time2 = st.number_input("Lead Time (days):", value=5, key="lead_time2")
         policy2 = st.selectbox("Policy:", ["R,S", "s,Q"], key="policy2")
+        distribution2 = st.selectbox("Demand Distribution:", ["Normal", "Poisson", "Uniform"], key="distribution2")
 
         if policy2 == "R,S":
             review_period2 = st.number_input("Review Period (R):", value=10, key="R2")
@@ -127,8 +134,8 @@ if st.session_state.button_clicked:
     service_level = st.slider('Service Level:', 0.80, 1.00, 0.95)
 
     if st.button("Run Simulation"):
-        demand_data1 = generate_demand(duration1, mean_demand1, std_dev1)
-        demand_data2 = generate_demand(duration2, mean_demand2, std_dev2)
+        demand_data1 = generate_demand(distribution1, duration1, mean_demand1, std_dev1)
+        demand_data2 = generate_demand(distribution2, duration2, mean_demand2, std_dev2)
 
         if policy1 == "R,S":
             inventory_levels1, in_transit1, stock_out_period1, SL_alpha1, SL_period1 = simulate_inventory_RS(
@@ -170,7 +177,7 @@ if st.session_state.button_clicked:
             'Time': range(duration1),
             'Inventory Level': inventory_levels1,
             'Orders Placed': in_transit1[:, 0],
-            'In Transit': in_transit1.sum(axis=1),
+            'In Transit': in_transit1[:, 1:].sum(axis=1),
             'Stockouts': stock_out_period1
         })
 
@@ -178,7 +185,7 @@ if st.session_state.button_clicked:
             'Time': range(duration2),
             'Inventory Level': inventory_levels2,
             'Orders Placed': in_transit2[:, 0],
-            'In Transit': in_transit2.sum(axis=1),
+            'In Transit': in_transit2[:, 1:].sum(axis=1),
             'Stockouts': stock_out_period2
         })
 
