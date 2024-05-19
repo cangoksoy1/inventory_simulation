@@ -18,16 +18,15 @@ st.markdown(page_bg_img, unsafe_allow_html=True)
 if 'button_clicked' not in st.session_state:
     st.session_state.button_clicked = False
 
-st.button_html = """
+if st.button('Press Me', key='press_me_button', on_click=lambda: st.session_state.update(button_clicked=True)):
+    st.session_state.button_clicked = True
+    st.button_html = """
 <div style="position: absolute; top: 300px; left: 50%; transform: translateX(-50%);">
     <button id="press-me-button" style="background-color: #000000; color: white; font-size: 24px; padding: 15px 30px; border: none; cursor: pointer;">Press Me</button>
 </div>
 """
 st.markdown(st.button_html, unsafe_allow_html=True)
 
-if st.button('Press Me', key='press_me_button', on_click=lambda: st.session_state.update(button_clicked=True)):
-    st.session_state.button_clicked = True
-    
 if st.session_state.button_clicked:
     st.markdown(
         """
