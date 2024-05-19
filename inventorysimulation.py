@@ -68,9 +68,8 @@ if st.session_state.button_clicked:
     def simulate_inventory_sQ(duration, demand, s, Q, lead_time, service_level):
         z = norm.ppf(service_level)
         mu_LD = d_mu * L
-        sigma_LD = np.sqrt(L * (d_std ** 2))
-        ss = z * sigma_LD
-        s = mu_LD + ss
+        sigma_LD = np.sqrt((d_std**2) * L)
+        s = mu_LD + z * sigma_LD
 
         hand = np.zeros(duration, dtype=int)
         transit = np.zeros((duration, lead_time + 1), dtype=int)
@@ -194,3 +193,4 @@ if st.session_state.button_clicked:
         st.write(f"Cycle Service Level for Policy 2: {SL_alpha2:.2f}%")
         st.write(f"Period Service Level for Policy 2: {SL_period2:.2f}%")
         st.download_button('Download Comparison Report', data=open(file_path, 'rb').read(), file_name=file_path, mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+
