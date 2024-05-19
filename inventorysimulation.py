@@ -66,10 +66,10 @@ if st.session_state.button_clicked:
         return hand.astype(int), transit.astype(int), shortages.astype(int), stock_out_period, SL_alpha, SL_period
 
     def simulate_inventory_sQ(duration, demand, mean_demand, std_dev, lead_time, service_level, s, Q):
+        z = norm.ppf(service_level)
         mu_LD = mean_demand * lead_time
         sigma_LD = std_dev * np.sqrt(lead_time)
-        SS = norm.ppf(service_level) * sigma_LD
-        s = mu_LD + SS
+        s = mu_LD + z * sigma_LD
 
         hand = np.zeros(duration, dtype=int)
         transit = np.zeros((duration, lead_time + 1), dtype=int)
@@ -80,11 +80,9 @@ if st.session_state.button_clicked:
 
         stock_out_period = np.full(duration, False, dtype=bool)
         stock_out_cycle = []
-        cycles = 0
 
         for t in range(1, duration):
             if transit[t-1, 0] > 0:
-                cycles += 1
                 stock_out_cycle.append(stock_out_period[t-1])
             hand[t] = hand[t-1] - demand[t] + transit[t-1, 0]
             shortages[t] = max(0, demand[t] - hand[t-1])
@@ -93,7 +91,7 @@ if st.session_state.button_clicked:
             if hand[t] < s:
                 transit[t, lead_time] = Q
 
-        SL_alpha = (1 - sum(stock_out_cycle) / cycles) * 100 if cycles > 0 else 100
+        SL_alpha = (1 - sum(stock_out_cycle) / len(stock_out_cycle)) * 100
         SL_period = (1 - sum(stock_out_period) / duration) * 100
 
         return hand.astype(int), transit.astype(int), shortages.astype(int), stock_out_period, SL_alpha, SL_period
@@ -140,22 +138,21 @@ if st.session_state.button_clicked:
     service_level = st.slider('Service Level:', 0.80, 1.00, 0.95)
 
     if st.button("Run Simulation"):
-        demand_data1 = generate_demand(distribution1, duration1, mean_demand1, std_dev1)
-        demand_data2 = generate_demand(distribution2, duration2, mean_demand2, std_dev2)
+        demand_data = generate_demand(distribution1, max(duration1, duration2), mean_demand1, std_dev1)
 
         if policy1 == "R,S":
             inventory_levels1, in_transit1, shortages1, stock_out_period1, SL_alpha1, SL_period1 = simulate_inventory_RS(
-                duration1, demand_data1, mean_demand1, std_dev1, lead_time1, review_period1, service_level)
+                duration1, demand_data[:duration1], mean_demand1, std_dev1, lead_time1, review_period1, service_level)
         elif policy1 == "s,Q":
             inventory_levels1, in_transit1, shortages1, stock_out_period1, SL_alpha1, SL_period1 = simulate_inventory_sQ(
-                duration1, demand_data1, mean_demand1, std_dev1, lead_time1, service_level, s1, Q1)
+                duration1, demand_data[:duration1], mean_demand1, std_dev1, lead_time1, service_level, s1, Q1)
 
         if policy2 == "R,S":
             inventory_levels2, in_transit2, shortages2, stock_out_period2, SL_alpha2, SL_period2 = simulate_inventory_RS(
-                duration2, demand_data2, mean_demand2, std_dev2, lead_time2, review_period2, service_level)
+                duration2, demand_data[:duration2], mean_demand2, std_dev2, lead_time2, review_period2, service_level)
         elif policy2 == "s,Q":
             inventory_levels2, in_transit2, shortages2, stock_out_period2, SL_alpha2, SL_period2 = simulate_inventory_sQ(
-                duration2, demand_data2, mean_demand2, std_dev2, lead_time2, service_level, s2, Q2)
+                duration2, demand_data[:duration2], mean_demand2, std_dev2, lead_time2, service_level, s2, Q2)
 
         # Plotting results
         fig, ax = plt.subplots()
@@ -172,12 +169,18 @@ if st.session_state.button_clicked:
         # Writing results to CSV
         results_df1 = pd.DataFrame({
             'Time': range(duration1),
-            'Inventory Level': inventory_levels1
+            'Inventory Level': inventory_levels1,
+            'In-Transit': [list(x) for x in in_transit1],
+            'Shortages': shortages1,
+            'Stockouts': stock_out_period1
         })
 
         results_df2 = pd.DataFrame({
             'Time': range(duration2),
-            'Inventory Level': inventory_levels2
+            'Inventory Level': inventory_levels2,
+            'In-Transit': [list(x) for x in in_transit2],
+            'Shortages': shortages2,
+            'Stockouts': stock_out_period2
         })
 
         # Ensure sheet names are valid by removing any special characters
