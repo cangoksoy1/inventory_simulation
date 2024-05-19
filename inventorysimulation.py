@@ -4,7 +4,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.stats import norm
 from openpyxl import Workbook
-from openpyxl.styles import Font, Border, Side, PatternFill
+from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
 
 # Background image setup
 page_bg_img = """
@@ -70,14 +70,15 @@ if st.session_state.button_clicked:
     def simulate_inventory_sQ(duration, demand, mean_demand, std_dev, lead_time, service_level, s, Q):
         z = norm.ppf(service_level)
         mu_LD = mean_demand * lead_time
-        sigma_LD = np.sqrt(lead_time) * std_dev
+        sigma_LD = std_dev * np.sqrt(lead_time)
         Ss = np.round(z * sigma_LD).astype(int)
+        S = s + Ss
 
         hand = np.zeros(duration, dtype=int)
         transit = np.zeros((duration, lead_time + 1), dtype=int)
         shortages = np.zeros(duration, dtype=int)
 
-        hand[0] = s + Q - demand[0]
+        hand[0] = S - demand[0]
         transit[1, -1] = Q
 
         stock_out_period = np.full(duration, False, dtype=bool)
@@ -90,7 +91,8 @@ if st.session_state.button_clicked:
             shortages[t] = max(0, demand[t] - hand[t-1])
             stock_out_period[t] = hand[t] < 0
             transit[t, :-1] = transit[t-1, 1:]
-            if hand[t] < s:
+            if hand[t] <= s:
+                net = hand[t] + transit[t].sum()
                 transit[t, lead_time] = Q
 
         SL_alpha = (1 - sum(stock_out_cycle) / len(stock_out_cycle)) * 100
@@ -168,21 +170,19 @@ if st.session_state.button_clicked:
         ax.grid(True)
         st.pyplot(fig)
 
-        # Writing results to CSV
+        # Writing results to Excel
         results_df1 = pd.DataFrame({
             'Time': range(duration1),
             'Demand': demand_data[:duration1],
             'On-hand': inventory_levels1,
-            'In-transit': [list(transit_row) for transit_row in in_transit1],
-            'Shortages': shortages1
+            'In-transit': list(map(str, in_transit1)),
         })
 
         results_df2 = pd.DataFrame({
             'Time': range(duration2),
             'Demand': demand_data[:duration2],
             'On-hand': inventory_levels2,
-            'In-transit': [list(transit_row) for transit_row in in_transit2],
-            'Shortages': shortages2
+            'In-transit': list(map(str, in_transit2)),
         })
 
         # Ensure sheet names are valid by removing any special characters
@@ -190,37 +190,32 @@ if st.session_state.button_clicked:
         valid_policy2 = ''.join(e for e in policy2 if e.isalnum())
 
         file_path = 'inventorycontrol_comparison.xlsx'
-        with pd.ExcelWriter(file_path) as writer:
+        with pd.ExcelWriter(file_path, engine='openpyxl') as writer:
             results_df1.to_excel(writer, sheet_name=f'Policy1_{valid_policy1}', index=False)
             results_df2.to_excel(writer, sheet_name=f'Policy2_{valid_policy2}', index=False)
+            workbook = writer.book
+            worksheet1 = writer.sheets[f'Policy1_{valid_policy1}']
+            worksheet2 = writer.sheets[f'Policy2_{valid_policy2}']
 
-            # Add formatting to the sheets
-            wb = writer.book
-            ws1 = wb[f'Policy1_{valid_policy1}']
-            ws2 = wb[f'Policy2_{valid_policy2}']
-
-            # Define styles
-            bold_font = Font(bold=True)
+            # Define the styles
+            header_font = Font(bold=True, color="FFFFFF")
+            header_fill = PatternFill(start_color="FF0000", end_color="FF0000", fill_type="solid")
+            cell_font = Font(bold=False, color="000000")
+            cell_fill = PatternFill(start_color="FFCCCC", end_color="FFCCCC", fill_type="solid")
             border = Border(left=Side(style='thin'), right=Side(style='thin'), top=Side(style='thin'), bottom=Side(style='thin'))
-            fill = PatternFill(start_color='FFFF99', end_color='FFFF99', fill_type='solid')
 
-            # Apply styles to header row
-            for cell in ws1[1]:
-                cell.font = bold_font
-                cell.border = border
-                cell.fill = fill
-            for cell in ws2[1]:
-                cell.font = bold_font
-                cell.border = border
-                cell.fill = fill
-
-            # Apply border to all cells
-            for row in ws1.iter_rows(min_row=2, max_row=ws1.max_row, min_col=1, max_col=ws1.max_column):
-                for cell in row:
+            for ws in [worksheet1, worksheet2]:
+                for cell in ws["1:1"]:
+                    cell.font = header_font
+                    cell.fill = header_fill
+                    cell.alignment = Alignment(horizontal="center", vertical="center")
                     cell.border = border
-            for row in ws2.iter_rows(min_row=2, max_row=ws2.max_row, min_col=1, max_col=ws2.max_column):
-                for cell in row:
-                    cell.border = border
+                for row in ws.iter_rows(min_row=2, max_row=ws.max_row, min_col=1, max_col=ws.max_column):
+                    for cell in row:
+                        cell.font = cell_font
+                        cell.fill = cell_fill
+                        cell.alignment = Alignment(horizontal="center", vertical="center")
+                        cell.border = border
 
         st.success(f"Results saved to {file_path}")
         st.write(f"Cycle Service Level for Policy 1: {SL_alpha1:.2f}%")
@@ -228,4 +223,3 @@ if st.session_state.button_clicked:
         st.write(f"Cycle Service Level for Policy 2: {SL_alpha2:.2f}%")
         st.write(f"Period Service Level for Policy 2: {SL_period2:.2f}%")
         st.download_button('Download Comparison Report', data=open(file_path, 'rb').read(), file_name=file_path, mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-
