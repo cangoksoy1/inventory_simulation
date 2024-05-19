@@ -65,36 +65,38 @@ if st.session_state.button_clicked:
 
         return hand.astype(int), transit.astype(int), shortages.astype(int), stock_out_period, SL_alpha, SL_period
 
-    def simulate_inventory_sQ(duration, demand, mean_demand, std_dev, lead_time, service_level, s, Q):
-        z = norm.ppf(service_level)
-        mu_LD = mean_demand * lead_time
-        sigma_LD = std_dev * np.sqrt(lead_time)
-        s = mu_LD + z * sigma_LD
+   def simulate_inventory_sQ(duration, demand, mean_demand, std_dev, lead_time, service_level, s, Q):
+    mu_LD = mean_demand * lead_time
+    sigma_LD = std_dev * np.sqrt(lead_time)
+    SS = norm.ppf(service_level) * sigma_LD
+    s = mu_LD + SS
+    
+    hand = np.zeros(duration, dtype=int)
+    transit = np.zeros((duration, lead_time + 1), dtype=int)
+    shortages = np.zeros(duration, dtype=int)
 
-        hand = np.zeros(duration, dtype=int)
-        transit = np.zeros((duration, lead_time + 1), dtype=int)
-        shortages = np.zeros(duration, dtype=int)
+    hand[0] = s + Q - demand[0]
+    transit[1, -1] = Q
 
-        hand[0] = s + Q - demand[0]
-        transit[1, -1] = Q
+    stock_out_period = np.full(duration, False, dtype=bool)
+    stock_out_cycle = []
+    cycles = 0
 
-        stock_out_period = np.full(duration, False, dtype=bool)
-        stock_out_cycle = []
+    for t in range(1, duration):
+        if transit[t-1, 0] > 0:
+            cycles += 1
+            stock_out_cycle.append(stock_out_period[t-1])
+        hand[t] = hand[t-1] - demand[t] + transit[t-1, 0]
+        shortages[t] = max(0, demand[t] - hand[t-1])
+        stock_out_period[t] = hand[t] < 0
+        transit[t, :-1] = transit[t-1, 1:]
+        if hand[t] < s:
+            transit[t, lead_time] = Q
 
-        for t in range(1, duration):
-            if transit[t-1, 0] > 0:
-                stock_out_cycle.append(stock_out_period[t-1])
-            hand[t] = hand[t-1] - demand[t] + transit[t-1, 0]
-            shortages[t] = max(0, demand[t] - hand[t-1])
-            stock_out_period[t] = hand[t] < 0
-            transit[t, :-1] = transit[t-1, 1:]
-            if hand[t] < s:
-                transit[t, lead_time] = Q
+    SL_alpha = (1 - sum(stock_out_cycle) / cycles) * 100 if cycles > 0 else 100
+    SL_period = (1 - sum(stock_out_period) / duration) * 100
 
-        SL_alpha = (1 - sum(stock_out_cycle) / len(stock_out_cycle)) * 100
-        SL_period = (1 - sum(stock_out_period) / duration) * 100
-
-        return hand.astype(int), transit.astype(int), shortages.astype(int), stock_out_period, SL_alpha, SL_period
+    return hand.astype(int), transit.astype(int), shortages.astype(int), stock_out_period, SL_alpha, SL_period
 
     st.title("Inventory Management")
 
