@@ -208,19 +208,11 @@ if st.session_state.button_clicked:
         results_df1 = pd.DataFrame({
             'Time': range(duration1),
             'Inventory Level': inventory_levels1,
-            'Orders Placed': orders1,
-            'In Transit': in_transit1,
-            'Shortages': shortages1,
-            'On Hand': on_hand1
         })
 
         results_df2 = pd.DataFrame({
             'Time': range(duration2),
             'Inventory Level': inventory_levels2,
-            'Orders Placed': orders2,
-            'In Transit': in_transit2,
-            'Shortages': shortages2,
-            'On Hand': on_hand2
         })
 
         # Ensure sheet names are valid by removing any special characters
