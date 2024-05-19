@@ -20,11 +20,6 @@ if 'button_clicked' not in st.session_state:
 
 if st.button('Press Me', key='press_me_button', on_click=lambda: st.session_state.update(button_clicked=True)):
     st.session_state.button_clicked = True
-    st.button_html = """
-<div style="position: absolute; top: 300px; left: 50%; transform: translateX(-50%);">
-    <button id="press-me-button" style="background-color: #000000; color: white; font-size: 24px; padding: 15px 30px; border: none; cursor: pointer;">Press Me</button>
-</div>
-"""
 
 if st.session_state.button_clicked:
     st.markdown(
