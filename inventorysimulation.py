@@ -26,7 +26,6 @@ if st.session_state.button_clicked:
         """
         <style>
         .modal-content {
-            background-color: rgba(0,0,0,0.8);
             color: white;
             padding: 20px;
             border-radius: 10px;
