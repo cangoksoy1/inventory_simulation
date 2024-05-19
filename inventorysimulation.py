@@ -15,32 +15,10 @@ background-size: cover;
 """
 st.markdown(page_bg_img, unsafe_allow_html=True)
 
-# Initialize session state
 if 'button_clicked' not in st.session_state:
     st.session_state.button_clicked = False
 
-# HTML and CSS for the "Press Me" button (white background)
-button_html = """
-<div style="position: absolute; top: 300px; left: 50%; transform: translateX(-50%);">
-    <button id="press-me-button" style="background-color: #000000; color: white; font-size: 24px; padding: 15px 30px; border: none; cursor: pointer;">Press Me</button>
-</div>
-"""
-st.markdown(button_html, unsafe_allow_html=True)
-
-# JavaScript to handle button click
-js_code = """
-<script>
-document.getElementById('press-me-button').onclick = function() {
-    const streamlit = window.parent;
-    streamlit.postMessage({isOpen: true}, '*');
-    document.getElementById('press-me-button').style.display = 'none';
-}
-</script>
-"""
-st.markdown(js_code, unsafe_allow_html=True)
-
-# Function to handle button click
-def handle_click():
+if st.button('Press Me', key='press_me_button', on_click=lambda: st.session_state.update(button_clicked=True)):
     st.session_state.button_clicked = True
 
 if st.session_state.button_clicked:
@@ -54,7 +32,7 @@ if st.session_state.button_clicked:
             border-radius: 10px;
             width: 80%;
             margin: 0 auto;
-            margin-top: 50px;
+            margin-top: 100px;
         }
         .close {
             color: white;
@@ -280,4 +258,5 @@ if st.session_state.button_clicked:
         st.write(f"Service Level for Policy 2: {service_level_achieved2:.2f}% (Cycle: {SL_alpha2:.2f}, Period: {SL_period2:.2f})")
         st.download_button('Download Comparison Report', data=open(file_path, 'rb').read(), file_name=file_path, mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     
-    st.markdown('</div>', unsafe_allow_html=True)
+
+
