@@ -65,10 +65,10 @@ if st.session_state.button_clicked:
 
         return hand.astype(int), transit.astype(int), shortages.astype(int), stock_out_period, SL_alpha, SL_period
 
-    def simulate_inventory_sQ(duration, demand, s, Q, lead_time, service_level):
+    def simulate_inventory_sQ(duration, demand, mean_demand, std_dev, lead_time, service_level, s, Q):
         z = norm.ppf(service_level)
-        mu_LD = d_mu * L
-        sigma_LD = np.sqrt((d_std**2) * L)
+        mu_LD = mean_demand * lead_time
+        sigma_LD = std_dev * np.sqrt(lead_time)
         s = mu_LD + z * sigma_LD
 
         hand = np.zeros(duration, dtype=int)
@@ -146,14 +146,14 @@ if st.session_state.button_clicked:
                 duration1, demand_data1, mean_demand1, std_dev1, lead_time1, review_period1, service_level)
         elif policy1 == "s,Q":
             inventory_levels1, in_transit1, shortages1, stock_out_period1, SL_alpha1, SL_period1 = simulate_inventory_sQ(
-                duration1, demand_data1, s1, Q1, lead_time1, service_level)
+                duration1, demand_data1, mean_demand1, std_dev1, lead_time1, service_level, s1, Q1)
 
         if policy2 == "R,S":
             inventory_levels2, in_transit2, shortages2, stock_out_period2, SL_alpha2, SL_period2 = simulate_inventory_RS(
                 duration2, demand_data2, mean_demand2, std_dev2, lead_time2, review_period2, service_level)
         elif policy2 == "s,Q":
             inventory_levels2, in_transit2, shortages2, stock_out_period2, SL_alpha2, SL_period2 = simulate_inventory_sQ(
-                duration2, demand_data2, s2, Q2, lead_time2, service_level)
+                duration2, demand_data2, mean_demand2, std_dev2, lead_time2, service_level, s2, Q2)
 
         # Plotting results
         fig, ax = plt.subplots()
@@ -193,4 +193,3 @@ if st.session_state.button_clicked:
         st.write(f"Cycle Service Level for Policy 2: {SL_alpha2:.2f}%")
         st.write(f"Period Service Level for Policy 2: {SL_period2:.2f}%")
         st.download_button('Download Comparison Report', data=open(file_path, 'rb').read(), file_name=file_path, mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-
