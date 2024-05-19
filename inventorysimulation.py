@@ -22,38 +22,22 @@ if st.button('Press Me', key='press_me_button', on_click=lambda: st.session_stat
     st.session_state.button_clicked = True
     
 if st.session_state.button_clicked:
-    st.markdown(
-        """
-        <style>
-        .modal-content {
-            padding: 20px;
-            border-radius: 10px;
-            width: 80%;
-            margin: 0 auto;
-            margin-top: 100px;
-        }
-        </style>
-        <div class="modal-content">
-            <div id="inventory-management" style="display: block;">
-        """, unsafe_allow_html=True
-    )
-
-    def generate_demand(demand=None, distribution=None, duration=None, mean=None, std_dev=None):
-        if demand is not None:
-            return demand
-        elif distribution == "Normal":
+    def generate_demand(distribution, duration, mean, std_dev):
+        if distribution == "Normal":
             return np.maximum(np.random.normal(loc=mean, scale=std_dev, size=duration).round(0).astype(int), 0)
         elif distribution == "Poisson":
             return np.random.poisson(lam=mean, size=duration)
         elif distribution == "Uniform":
             return np.random.uniform(low=mean - std_dev, high=mean + std_dev, size=duration)
 
-    def calculate_safety_stock(mean, std_dev, service_level):
-        z = norm.ppf(service_level)
-        return z * std_dev
-
-    def simulate_inventory(policy, duration, demand, lead_time, s, Q, S, R, service_level_target, std_dev, d_mu):
-        safety_stock = calculate_safety_stock(mean=np.mean(demand), std_dev=std_dev, service_level=service_level_target)
+    def simulate_inventory(policy, duration, demand, lead_time, s, Q, S, R, service_level_target, std_dev, mean):
+        z = norm.ppf(service_level_target)
+        x_std = std_dev * np.sqrt(lead_time + R)
+        Ss = np.round(x_std * z).astype(int)
+        Q = mean * R
+        Cs = Q / 2
+        Is = mean * lead_time
+        S = Ss + Q + Is
 
         inventory_levels = np.zeros(duration)
         orders = np.zeros(duration)
@@ -116,20 +100,28 @@ if st.session_state.button_clicked:
     # Widgets for input parameters
     col1, col2 = st.columns(2)
 
+    def get_demand_input(policy_num):
+        demand_known = st.checkbox(f"Is Demand Known for Policy {policy_num}?", key=f"demand_known{policy_num}")
+        if demand_known:
+            demand = st.text_input(f"Demand (comma-separated for each period) for Policy {policy_num}:", key=f"demand{policy_num}")
+            demand = np.array([int(x.strip()) for x in demand.split(',') if x.strip().isdigit()])
+            mean_demand = None
+            std_dev = None
+        else:
+            mean_demand = st.number_input(f"Demand Mean for Policy {policy_num}:", value=50, key=f"mean_demand{policy_num}")
+            std_dev = st.number_input(f"Demand Std Dev for Policy {policy_num}:", value=10, key=f"std_dev{policy_num}")
+            demand = None
+        return demand, mean_demand, std_dev
+
     with col1:
         st.header("Policy 1")
         duration1 = st.number_input("Duration (days)", value=30, key="duration1")
-        mean_demand1 = st.number_input("Demand Mean:", value=50, key="mean_demand1")
-        std_dev1 = st.number_input("Demand Std Dev:", value=10, key="std_dev1")
         lead_time1 = st.number_input("Lead Time (days):", value=5, key="lead_time1")
         policy1 = st.selectbox("Policy:", ["s,Q", "R,s,Q", "s,S", "R,s,S"], key="policy1")
         distribution1 = st.selectbox("Demand Distribution:", ["Normal", "Poisson", "Uniform"], key="distribution1")
-        demand1_input = st.text_input("Demand (comma-separated for each period, leave blank for calculated demand)", value="", key="demand1")
-        
-        demand1 = None
-        if demand1_input:
-            demand1 = np.array([int(x) for x in demand1_input.split(",")])
-        
+
+        demand1, mean_demand1, std_dev1 = get_demand_input(1)
+
         if st.button("Further Calculation for Policy 1"):
             st.session_state.show_parameters[0] = True
 
@@ -158,17 +150,12 @@ if st.session_state.button_clicked:
     with col2:
         st.header("Policy 2")
         duration2 = st.number_input("Duration (days)", value=30, key="duration2")
-        mean_demand2 = st.number_input("Demand Mean:", value=50, key="mean_demand2")
-        std_dev2 = st.number_input("Demand Std Dev:", value=10, key="std_dev2")
         lead_time2 = st.number_input("Lead Time (days):", value=5, key="lead_time2")
         policy2 = st.selectbox("Policy:", ["s,Q", "R,s,Q", "s,S", "R,s,S"], key="policy2")
         distribution2 = st.selectbox("Demand Distribution:", ["Normal", "Poisson", "Uniform"], key="distribution2")
-        demand2_input = st.text_input("Demand (comma-separated for each period, leave blank for calculated demand)", value="", key="demand2")
 
-        demand2 = None
-        if demand2_input:
-            demand2 = np.array([int(x) for x in demand2_input.split(",")])
-        
+        demand2, mean_demand2, std_dev2 = get_demand_input(2)
+
         if st.button("Further Calculation for Policy 2"):
             st.session_state.show_parameters[1] = True
 
@@ -198,9 +185,9 @@ if st.session_state.button_clicked:
 
     if st.button("Run Simulation"):
         if demand1 is None:
-            demand1 = generate_demand(distribution=distribution1, duration=duration1, mean=mean_demand1, std_dev=std_dev1)
+            demand1 = generate_demand(distribution1, duration1, mean_demand1, std_dev1)
         if demand2 is None:
-            demand2 = generate_demand(distribution=distribution2, duration=duration2, mean=mean_demand2, std_dev=std_dev2)
+            demand2 = generate_demand(distribution2, duration2, mean_demand2, std_dev2)
 
         inventory_levels1, orders1, in_transit1, shortages1, on_hand1, service_level_achieved1, SL_alpha1, SL_period1 = simulate_inventory(
             policy1, duration1, demand1, lead_time1, s1, Q1, S1, R1, service_level, std_dev1, mean_demand1)
@@ -259,3 +246,5 @@ if st.session_state.button_clicked:
         st.write(f"Service Level for Policy 1: {service_level_achieved1:.2f}% (Cycle: {SL_alpha1:.2f}, Period: {SL_period1:.2f})")
         st.write(f"Service Level for Policy 2: {service_level_achieved2:.2f}% (Cycle: {SL_alpha2:.2f}, Period: {SL_period2:.2f})")
         st.download_button('Download Comparison Report', data=open(file_path, 'rb').read(), file_name=file_path, mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+
+
