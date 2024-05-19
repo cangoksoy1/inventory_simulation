@@ -3,8 +3,8 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.stats import norm
-from openpyxl import Workbook
-from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+from openpyxl.styles import Font, PatternFill, Border, Side, Alignment
+from openpyxl import load_workbook
 
 # Background image setup
 page_bg_img = """
@@ -55,7 +55,7 @@ if st.session_state.button_clicked:
             if transit[t-1, 0] > 0:
                 stock_out_cycle.append(stock_out_period[t-1])
             hand[t] = hand[t-1] - demand[t] + transit[t-1, 0]
-            shortages[t] = max(0, demand[t] - hand[t-1])
+            shortages[t] = max(0, demand[t] - hand[t])
             stock_out_period[t] = hand[t] < 0
             transit[t, :-1] = transit[t-1, 1:]
             if 0 == t % review_period:
@@ -69,16 +69,11 @@ if st.session_state.button_clicked:
 
     def simulate_inventory_sQ(duration, demand, mean_demand, std_dev, lead_time, service_level, s, Q):
         z = norm.ppf(service_level)
-        mu_LD = mean_demand * lead_time
-        sigma_LD = std_dev * np.sqrt(lead_time)
-        Ss = np.round(z * sigma_LD).astype(int)
-        S = s + Ss
-
         hand = np.zeros(duration, dtype=int)
         transit = np.zeros((duration, lead_time + 1), dtype=int)
         shortages = np.zeros(duration, dtype=int)
 
-        hand[0] = S - demand[0]
+        hand[0] = s + Q - demand[0]
         transit[1, -1] = Q
 
         stock_out_period = np.full(duration, False, dtype=bool)
@@ -88,11 +83,10 @@ if st.session_state.button_clicked:
             if transit[t-1, 0] > 0:
                 stock_out_cycle.append(stock_out_period[t-1])
             hand[t] = hand[t-1] - demand[t] + transit[t-1, 0]
-            shortages[t] = max(0, demand[t] - hand[t-1])
+            shortages[t] = max(0, demand[t] - hand[t])
             stock_out_period[t] = hand[t] < 0
             transit[t, :-1] = transit[t-1, 1:]
-            if hand[t] <= s:
-                net = hand[t] + transit[t].sum()
+            if hand[t] < s:
                 transit[t, lead_time] = Q
 
         SL_alpha = (1 - sum(stock_out_cycle) / len(stock_out_cycle)) * 100
@@ -175,14 +169,16 @@ if st.session_state.button_clicked:
             'Time': range(duration1),
             'Demand': demand_data[:duration1],
             'On-hand': inventory_levels1,
-            'In-transit': list(map(str, in_transit1)),
+            'In-transit': list(in_transit1),
+            'Shortages': shortages1
         })
 
         results_df2 = pd.DataFrame({
             'Time': range(duration2),
             'Demand': demand_data[:duration2],
             'On-hand': inventory_levels2,
-            'In-transit': list(map(str, in_transit2)),
+            'In-transit': list(in_transit2),
+            'Shortages': shortages2
         })
 
         # Ensure sheet names are valid by removing any special characters
@@ -190,32 +186,32 @@ if st.session_state.button_clicked:
         valid_policy2 = ''.join(e for e in policy2 if e.isalnum())
 
         file_path = 'inventorycontrol_comparison.xlsx'
-        with pd.ExcelWriter(file_path, engine='openpyxl') as writer:
+        with pd.ExcelWriter(file_path) as writer:
             results_df1.to_excel(writer, sheet_name=f'Policy1_{valid_policy1}', index=False)
             results_df2.to_excel(writer, sheet_name=f'Policy2_{valid_policy2}', index=False)
-            workbook = writer.book
-            worksheet1 = writer.sheets[f'Policy1_{valid_policy1}']
-            worksheet2 = writer.sheets[f'Policy2_{valid_policy2}']
 
-            # Define the styles
-            header_font = Font(bold=True, color="FFFFFF")
-            header_fill = PatternFill(start_color="FF0000", end_color="FF0000", fill_type="solid")
-            cell_font = Font(bold=False, color="000000")
-            cell_fill = PatternFill(start_color="FFCCCC", end_color="FFCCCC", fill_type="solid")
-            border = Border(left=Side(style='thin'), right=Side(style='thin'), top=Side(style='thin'), bottom=Side(style='thin'))
+        # Load the workbook to apply formatting
+        wb = load_workbook(file_path)
+        for sheet_name in wb.sheetnames:
+            sheet = wb[sheet_name]
 
-            for ws in [worksheet1, worksheet2]:
-                for cell in ws["1:1"]:
-                    cell.font = header_font
-                    cell.fill = header_fill
-                    cell.alignment = Alignment(horizontal="center", vertical="center")
-                    cell.border = border
-                for row in ws.iter_rows(min_row=2, max_row=ws.max_row, min_col=1, max_col=ws.max_column):
-                    for cell in row:
-                        cell.font = cell_font
-                        cell.fill = cell_fill
-                        cell.alignment = Alignment(horizontal="center", vertical="center")
-                        cell.border = border
+            # Apply formatting
+            header_fill = PatternFill(start_color='FF0000', end_color='FF0000', fill_type='solid')
+            header_font = Font(color='FFFFFF', bold=True)
+            for cell in sheet[1]:
+                cell.fill = header_fill
+                cell.font = header_font
+                cell.border = Border(left=Side(style='thin'), right=Side(style='thin'), top=Side(style='thin'), bottom=Side(style='thin'))
+                cell.alignment = Alignment(horizontal='center', vertical='center')
+
+            # Apply alternating row colors
+            for row in sheet.iter_rows(min_row=2, max_row=sheet.max_row, min_col=1, max_col=sheet.max_column):
+                for cell in row:
+                    cell.border = Border(left=Side(style='thin'), right=Side(style='thin'), top=Side(style='thin'), bottom=Side(style='thin'))
+                    if cell.row % 2 == 0:
+                        cell.fill = PatternFill(start_color='FFEBEB', end_color='FFEBEB', fill_type='solid')
+
+        wb.save(file_path)
 
         st.success(f"Results saved to {file_path}")
         st.write(f"Cycle Service Level for Policy 1: {SL_alpha1:.2f}%")
