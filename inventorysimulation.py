@@ -20,43 +20,31 @@ if 'button_clicked' not in st.session_state:
 
 if st.button('Press Me', key='press_me_button', on_click=lambda: st.session_state.update(button_clicked=True)):
     st.session_state.button_clicked = True
-
+    
 if st.session_state.button_clicked:
     st.markdown(
         """
         <style>
-        .overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 50%;
-            background: rgba(0, 0, 0, 0.8);
-            z-index: 1000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
         .modal-content {
-            background-color: white;
-            color: black;
+            background-color: rgba(0,0,0,0.8);
+            color: white;
             padding: 20px;
             border-radius: 10px;
             width: 80%;
-            position: relative;
+            margin: 0 auto;
+            margin-top: 100px;
         }
         .close {
-            color: black;
+            color: white;
             float: right;
             font-size: 28px;
             font-weight: bold;
             cursor: pointer;
         }
         </style>
-        <div class="overlay" id="overlay">
-            <div class="modal-content">
-                <span class="close" onclick="document.getElementById('overlay').style.display='none';">&times;</span>
-                <div id="inventory-management" style="display: block;">
+        <div class="modal-content">
+            <span class="close" onclick="document.getElementById('inventory-management').style.display='none';">&times;</span>
+            <div id="inventory-management" style="display: block;">
         """, unsafe_allow_html=True
     )
 
@@ -269,3 +257,4 @@ if st.session_state.button_clicked:
         st.write(f"Service Level for Policy 1: {service_level_achieved1:.2f}% (Cycle: {SL_alpha1:.2f}, Period: {SL_period1:.2f})")
         st.write(f"Service Level for Policy 2: {service_level_achieved2:.2f}% (Cycle: {SL_alpha2:.2f}, Period: {SL_period2:.2f})")
         st.download_button('Download Comparison Report', data=open(file_path, 'rb').read(), file_name=file_path, mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    
