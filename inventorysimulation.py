@@ -11,6 +11,18 @@ page_bg_img = """
 background: url("https://i.imgur.com/kox6xPx.png");
 background-size: cover;
 }
+#press-me-button {
+position: absolute;
+top: 400px; /* Adjusted to be above the computer screen */
+left: 50%;
+transform: translateX(-50%);
+background-color: #000000;
+color: white;
+font-size: 24px;
+padding: 15px 30px;
+border: none;
+cursor: pointer;
+}
 </style>
 """
 st.markdown(page_bg_img, unsafe_allow_html=True)
@@ -19,11 +31,29 @@ st.markdown(page_bg_img, unsafe_allow_html=True)
 if 'button_clicked' not in st.session_state:
     st.session_state.button_clicked = False
 
-# First "Press Me" button (non-functional, should be removed)
-if st.button('Press Me', key='press_me_button', on_click=lambda: st.session_state.update(button_clicked=True)):
-    st.session_state.button_clicked = True
+# HTML for the "Press Me" button
+button_html = """
+<button id="press-me-button">Press Me</button>
+"""
 
-# This part creates the main content when the button is clicked
+# JavaScript to handle button click
+js_code = """
+<script>
+document.getElementById('press-me-button').onclick = function() {
+    const streamlit = window.parent;
+    streamlit.postMessage({isOpen: true}, '*');
+    document.getElementById('press-me-button').style.display = 'none';
+}
+document.querySelector('.close').onclick = function() {
+    document.getElementById('inventory-management').style.display = 'none';
+    document.getElementById('press-me-button').style.display = 'block';
+}
+</script>
+"""
+
+st.markdown(button_html, unsafe_allow_html=True)
+st.markdown(js_code, unsafe_allow_html=True)
+
 if st.session_state.button_clicked:
     st.markdown(
         """
@@ -33,9 +63,10 @@ if st.session_state.button_clicked:
             color: white;
             padding: 20px;
             border-radius: 10px;
-            width: 80%;
+            width: 90%;
+            height: 90%;
             margin: 0 auto;
-            margin-top: 100px;
+            margin-top: 50px;
         }
         .close {
             color: white;
@@ -262,11 +293,12 @@ if st.session_state.button_clicked:
         st.download_button('Download Comparison Report', data=open(file_path, 'rb').read(), file_name=file_path, mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     
     st.markdown('</div>', unsafe_allow_html=True)
+
 else:
     # HTML and CSS for the "Press Me" button
     button_html = """
-    <div style="position: absolute; bottom: 50px; left: 50%; transform: translateX(-50%);">
-        <button id="openModal" style="background-color: #000000; color: white; font-size: 24px; padding: 15px 30px; border: none; cursor: pointer;">Press Me</button>
+    <div style="position: absolute; top: 400px; left: 50%; transform: translateX(-50%);">
+        <button id="press-me-button" style="background-color: #000000; color: white; font-size: 24px; padding: 15px 30px; border: none; cursor: pointer;">Press Me</button>
     </div>
     """
     st.markdown(button_html, unsafe_allow_html=True)
@@ -274,9 +306,10 @@ else:
     # JavaScript to handle button click
     js_code = """
     <script>
-    document.getElementById('openModal').onclick = function() {
+    document.getElementById('press-me-button').onclick = function() {
         const streamlit = window.parent;
         streamlit.postMessage({isOpen: true}, '*');
+        document.getElementById('press-me-button').style.display = 'none';
     }
     </script>
     """
