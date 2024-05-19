@@ -25,7 +25,6 @@ if st.button('Press Me', key='press_me_button', on_click=lambda: st.session_stat
     <button id="press-me-button" style="background-color: #000000; color: white; font-size: 24px; padding: 15px 30px; border: none; cursor: pointer;">Press Me</button>
 </div>
 """
-st.markdown(st.button_html, unsafe_allow_html=True)
 
 if st.session_state.button_clicked:
     st.markdown(
