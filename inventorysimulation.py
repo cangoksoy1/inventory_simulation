@@ -29,7 +29,7 @@ if st.session_state.button_clicked:
             background-color: rgba(0,0,0,0.8);
             color: white;
             padding: 15px 30 px;
-            left: 50%
+            left: 80%
             border-radius: 10px;
             width: 80%;
             margin: 0 auto;
