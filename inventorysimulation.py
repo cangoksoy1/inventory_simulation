@@ -30,6 +30,11 @@ if st.session_state.button_clicked:
         elif distribution == "Uniform":
             return np.random.uniform(low=mean - std_dev, high=mean + std_dev, size=duration).astype(int)
 
+    def calculate_safety_stock(demand_std, lead_time, review_period, service_level):
+        z = norm.ppf(service_level)
+        x_std = demand_std * np.sqrt(lead_time + review_period)
+        return np.round(x_std * z).astype(int)
+
     def simulate_inventory_RS(duration, demand, mean_demand, std_dev, lead_time, review_period, service_level):
         z = norm.ppf(service_level)
         x_std = std_dev * np.sqrt(lead_time + review_period)
@@ -41,6 +46,7 @@ if st.session_state.button_clicked:
 
         hand = np.zeros(duration, dtype=int)
         transit = np.zeros((duration, lead_time + 1), dtype=int)
+        shortages = np.zeros(duration, dtype=int)
 
         hand[0] = S - demand[0]
         transit[1, -1] = demand[0]
@@ -52,40 +58,17 @@ if st.session_state.button_clicked:
             if transit[t-1, 0] > 0:
                 stock_out_cycle.append(stock_out_period[t-1])
             hand[t] = hand[t-1] - demand[t] + transit[t-1, 0]
+            shortages[t] = max(0, demand[t] - hand[t-1])
             stock_out_period[t] = hand[t] < 0
             transit[t, :-1] = transit[t-1, 1:]
             if 0 == t % review_period:
                 net = hand[t] + transit[t].sum()
                 transit[t, lead_time] = S - net
 
-        SL_alpha = 1 - sum(stock_out_cycle) / len(stock_out_cycle)
-        SL_period = 1 - sum(stock_out_period) / duration
+        SL_alpha = (1 - sum(stock_out_cycle) / len(stock_out_cycle)) * 100
+        SL_period = (1 - sum(stock_out_period) / duration) * 100
 
-        return hand.astype(int), transit.astype(int), stock_out_period, SL_alpha, SL_period
-
-    def simulate_inventory_sQ(duration, demand, s, Q, lead_time):
-        hand = np.zeros(duration, dtype=int)
-        transit = np.zeros((duration, lead_time + 1), dtype=int)
-
-        hand[0] = s + Q - demand[0]
-        transit[1, -1] = Q
-
-        stock_out_period = np.full(duration, False, dtype=bool)
-        stock_out_cycle = []
-
-        for t in range(1, duration):
-            if transit[t-1, 0] > 0:
-                stock_out_cycle.append(stock_out_period[t-1])
-            hand[t] = hand[t-1] - demand[t] + transit[t-1, 0]
-            stock_out_period[t] = hand[t] < 0
-            transit[t, :-1] = transit[t-1, 1:]
-            if hand[t] < s:
-                transit[t, lead_time] = Q
-
-        SL_alpha = 1 - sum(stock_out_cycle) / len(stock_out_cycle)
-        SL_period = 1 - sum(stock_out_period) / duration
-
-        return hand.astype(int), transit.astype(int), stock_out_period, SL_alpha, SL_period
+        return hand.astype(int), transit.astype(int), shortages.astype(int), stock_out_period, SL_alpha, SL_period
 
     st.title("Inventory Management")
 
@@ -133,17 +116,17 @@ if st.session_state.button_clicked:
         demand_data2 = generate_demand(distribution2, duration2, mean_demand2, std_dev2)
 
         if policy1 == "R,S":
-            inventory_levels1, in_transit1, stock_out_period1, SL_alpha1, SL_period1 = simulate_inventory_RS(
+            inventory_levels1, in_transit1, shortages1, stock_out_period1, SL_alpha1, SL_period1 = simulate_inventory_RS(
                 duration1, demand_data1, mean_demand1, std_dev1, lead_time1, review_period1, service_level)
         elif policy1 == "s,Q":
-            inventory_levels1, in_transit1, stock_out_period1, SL_alpha1, SL_period1 = simulate_inventory_sQ(
+            inventory_levels1, in_transit1, shortages1, stock_out_period1, SL_alpha1, SL_period1 = simulate_inventory_sQ(
                 duration1, demand_data1, s1, Q1, lead_time1)
 
         if policy2 == "R,S":
-            inventory_levels2, in_transit2, stock_out_period2, SL_alpha2, SL_period2 = simulate_inventory_RS(
+            inventory_levels2, in_transit2, shortages2, stock_out_period2, SL_alpha2, SL_period2 = simulate_inventory_RS(
                 duration2, demand_data2, mean_demand2, std_dev2, lead_time2, review_period2, service_level)
         elif policy2 == "s,Q":
-            inventory_levels2, in_transit2, stock_out_period2, SL_alpha2, SL_period2 = simulate_inventory_sQ(
+            inventory_levels2, in_transit2, shortages2, stock_out_period2, SL_alpha2, SL_period2 = simulate_inventory_sQ(
                 duration2, demand_data2, s2, Q2, lead_time2)
 
         # Plotting results
@@ -179,9 +162,9 @@ if st.session_state.button_clicked:
             results_df2.to_excel(writer, sheet_name=f'Policy2_{valid_policy2}', index=False)
 
         st.success(f"Results saved to {file_path}")
-        st.write(f"Cycle Service Level for Policy 1: {SL_alpha1:.2f}")
-        st.write(f"Period Service Level for Policy 1: {SL_period1:.2f}")
-        st.write(f"Cycle Service Level for Policy 2: {SL_alpha2:.2f}")
-        st.write(f"Period Service Level for Policy 2: {SL_period2:.2f}")
+        st.write(f"Cycle Service Level for Policy 1: {SL_alpha1:.2f}%")
+        st.write(f"Period Service Level for Policy 1: {SL_period1:.2f}%")
+        st.write(f"Cycle Service Level for Policy 2: {SL_alpha2:.2f}%")
+        st.write(f"Period Service Level for Policy 2: {SL_period2:.2f}%")
         st.download_button('Download Comparison Report', data=open(file_path, 'rb').read(), file_name=file_path, mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
 
