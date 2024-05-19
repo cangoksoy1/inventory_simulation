@@ -65,7 +65,13 @@ if st.session_state.button_clicked:
 
         return hand.astype(int), transit.astype(int), shortages.astype(int), stock_out_period, SL_alpha, SL_period
 
-    def simulate_inventory_sQ(duration, demand, s, Q, lead_time):
+    def simulate_inventory_sQ(duration, demand, s, Q, lead_time, service_level):
+        z = norm.ppf(service_level)
+        mu_LD = d_mu * L
+        sigma_LD = np.sqrt(L * (d_std ** 2))
+        ss = z * sigma_LD
+        s = mu_LD + ss
+
         hand = np.zeros(duration, dtype=int)
         transit = np.zeros((duration, lead_time + 1), dtype=int)
         shortages = np.zeros(duration, dtype=int)
@@ -133,21 +139,22 @@ if st.session_state.button_clicked:
     service_level = st.slider('Service Level:', 0.80, 1.00, 0.95)
 
     if st.button("Run Simulation"):
-        demand_data = generate_demand(distribution1, max(duration1, duration2), mean_demand1, std_dev1)
+        demand_data1 = generate_demand(distribution1, duration1, mean_demand1, std_dev1)
+        demand_data2 = generate_demand(distribution2, duration2, mean_demand2, std_dev2)
 
         if policy1 == "R,S":
             inventory_levels1, in_transit1, shortages1, stock_out_period1, SL_alpha1, SL_period1 = simulate_inventory_RS(
-                duration1, demand_data[:duration1], mean_demand1, std_dev1, lead_time1, review_period1, service_level)
+                duration1, demand_data1, mean_demand1, std_dev1, lead_time1, review_period1, service_level)
         elif policy1 == "s,Q":
             inventory_levels1, in_transit1, shortages1, stock_out_period1, SL_alpha1, SL_period1 = simulate_inventory_sQ(
-                duration1, demand_data[:duration1], s1, Q1, lead_time1)
+                duration1, demand_data1, s1, Q1, lead_time1, service_level)
 
         if policy2 == "R,S":
             inventory_levels2, in_transit2, shortages2, stock_out_period2, SL_alpha2, SL_period2 = simulate_inventory_RS(
-                duration2, demand_data[:duration2], mean_demand2, std_dev2, lead_time2, review_period2, service_level)
+                duration2, demand_data2, mean_demand2, std_dev2, lead_time2, review_period2, service_level)
         elif policy2 == "s,Q":
             inventory_levels2, in_transit2, shortages2, stock_out_period2, SL_alpha2, SL_period2 = simulate_inventory_sQ(
-                duration2, demand_data[:duration2], s2, Q2, lead_time2)
+                duration2, demand_data2, s2, Q2, lead_time2, service_level)
 
         # Plotting results
         fig, ax = plt.subplots()
