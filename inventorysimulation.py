@@ -113,7 +113,7 @@ if st.session_state.button_clicked:
         distribution1 = st.selectbox("Demand Distribution:", ["Normal", "Poisson", "Uniform"], key="distribution1")
 
         if policy1 == "R,S":
-            review_period1 = st.number_input("Review Period (R):", value=10, key="R1")
+            review_period1 = st.number_input("Period Review (R):", value=10, key="R1")
         elif policy1 == "s,Q":
             s1 = st.number_input("Reorder Point (s):", value=20, key="s1")
             Q1 = st.number_input("Order Quantity (Q):", value=40, key="Q1")
@@ -128,7 +128,7 @@ if st.session_state.button_clicked:
         distribution2 = st.selectbox("Demand Distribution:", ["Normal", "Poisson", "Uniform"], key="distribution2")
 
         if policy2 == "R,S":
-            review_period2 = st.number_input("Review Period (R):", value=10, key="R2")
+            review_period2 = st.number_input("Period Review (R):", value=10, key="R2")
         elif policy2 == "s,Q":
             s2 = st.number_input("Reorder Point (s):", value=20, key="s2")
             Q2 = st.number_input("Order Quantity (Q):", value=40, key="Q2")
