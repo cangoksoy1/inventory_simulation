@@ -5,7 +5,6 @@ import matplotlib.pyplot as plt
 from scipy.stats import norm
 from openpyxl.styles import Font, PatternFill, Border, Side, Alignment
 from openpyxl import load_workbook
-import webbrowser
 
 # Background image setup
 page_bg_img = """
@@ -358,7 +357,3 @@ if st.session_state.button_clicked:
             st.write(f"Cycle Service Level: {SL_alpha:.2f}%")
             st.write(f"Period Service Level: {SL_period:.2f}%")
             st.download_button('Download Report', data=open(file_path, 'rb').read(), file_name=file_path, mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-            st.button('User Manuel')
-            if st.button('User Manuel'):
-                webbrowser.open_new_tab(https://drive.google.com/file/d/1qxn0vv2nBxTgH_jAliVltXQ_XU6LUQfp/view?usp=sharing)
-
