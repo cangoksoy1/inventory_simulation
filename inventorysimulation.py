@@ -182,6 +182,8 @@ if st.session_state.button_clicked:
         st.write('Cycle Stock:', cycle_stock1)
         st.write('Pipeline Stock:', pipeline_stock1)
         st.write('Safety Stock:', safety_stock1)
+        st.write(f"Cycle Service Level for Policy 1: {SL_alpha1:.2f}%")
+        st.write(f"Period Service Level for Policy 1: {SL_period1:.2f}%")
 
         if policy2 == 's,Q':
             cycle_stock2 = Q2 / 2
@@ -196,7 +198,10 @@ if st.session_state.button_clicked:
         st.write('Cycle Stock:', cycle_stock2)
         st.write('Pipeline Stock:', pipeline_stock2)
         st.write('Safety Stock:', safety_stock2)
-    # Writing results to Excel
+        st.write(f"Cycle Service Level for Policy 2: {SL_alpha2:.2f}%")
+        st.write(f"Period Service Level for Policy 2: {SL_period2:.2f}%")
+
+        # Writing results to Excel
         results_df1 = pd.DataFrame({
             'Time': range(duration1),
             'Demand': demand_data[:duration1],
@@ -246,8 +251,4 @@ if st.session_state.button_clicked:
         wb.save(file_path)
 
         st.success(f"Results saved to {file_path}")
-        st.write(f"Cycle Service Level for Policy 1: {SL_alpha1:.2f}%")
-        st.write(f"Period Service Level for Policy 1: {SL_period1:.2f}%")
-        st.write(f"Cycle Service Level for Policy 2: {SL_alpha2:.2f}%")
-        st.write(f"Period Service Level for Policy 2: {SL_period2:.2f}%")
         st.download_button('Download Comparison Report', data=open(file_path, 'rb').read(), file_name=file_path, mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
