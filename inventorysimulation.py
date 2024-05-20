@@ -158,9 +158,13 @@ if st.session_state.button_clicked:
         ax.plot(inventory_levels2, label=f'Inventory Level (Policy 2: {policy2})')
 
         if policy1 == "R,S":
-            ax.axhline(y=Ss1, color='r', linestyle='--', label='Reorder Point (S) Policy 1')
+            ax.axhline(y=Ss1, color='r', linestyle='--', label='Reorder Point (R,S) Policy 1')
         if policy2 == "R,S":
-            ax.axhline(y=Ss2, color='b', linestyle='--', label='Reorder Point (S) Policy 2')
+            ax.axhline(y=Ss2, color='b', linestyle='--', label='Reorder Point (R,S) Policy 2')
+        if policy1 == "s,Q":
+            ax.axhline(y=Ss1, color='r', linestyle='--', label='Reorder Point (s,Q) Policy 1')
+        if policy2 == "s,Q":
+            ax.axhline(y=Ss2, color='b', linestyle='--', label='Reorder Point (s,Q) Policy 2')
 
         ax.set_xlabel('Time (days)')
         ax.set_ylabel('Inventory Level')
