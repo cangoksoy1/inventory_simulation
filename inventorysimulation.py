@@ -24,7 +24,7 @@ if st.button('Press Me', key='press_me_button', on_click=lambda: st.session_stat
     st.session_state.button_clicked = True
 
 if st.session_state.button_clicked:
-    compare_policies = st.checkbox("Compare Policies")
+    compare_policies = st.checkbox('Compare Policies')
 
     def generate_demand(distribution, duration, mean, std_dev):
         if distribution == "Normal":
@@ -96,9 +96,9 @@ if st.session_state.button_clicked:
 
         return hand.astype(int), transit.astype(int), shortages.astype(int), stock_out_period, SL_alpha, SL_period
 
-    st.title("Inventory Management")
-
     if compare_policies:
+        st.title("Inventory Management - Compare Policies")
+
         col1, col2 = st.columns(2)
 
         with col1:
@@ -157,14 +157,47 @@ if st.session_state.button_clicked:
 
             if policy1 == "R,S":
                 ax.axhline(y=Ss1, color='r', linestyle='--', label='R,S Policy Reorder Point')
+            if policy2 == "R,S":
+                ax.axhline(y=Ss2, color='r', linestyle='--', label='R,S Policy Reorder Point')
+            if policy1 == "s,Q":
+                ax.axhline(y=s1, color='b', linestyle='--', label='s,Q Policy Reorder Point')
             if policy2 == "s,Q":
                 ax.axhline(y=s2, color='b', linestyle='--', label='s,Q Policy Reorder Point')
 
-            ax.set_title(f'Inventory Simulation Comparison')
             ax.set_xlabel('Time (days)')
             ax.set_ylabel('Inventory Level')
             ax.legend()
             st.pyplot(fig)
+
+            # Calculate and display stocks
+            st.subheader('Stock Calculations')
+            if policy1 == 's,Q':
+                cycle_stock1 = Q1 / 2
+                pipeline_stock1 = mean_demand1 * lead_time1
+                safety_stock1 = std_dev1 * np.sqrt(lead_time1) * norm.ppf(service_level)
+            else:  # R,S
+                cycle_stock1 = mean_demand1 * review_period1 / 2
+                pipeline_stock1 = mean_demand1 * lead_time1
+                safety_stock1 = std_dev1 * np.sqrt(lead_time1 + review_period1) * norm.ppf(service_level)
+
+            st.write(f'Policy 1 ({policy1})')
+            st.write('Cycle Stock:', cycle_stock1)
+            st.write('Pipeline Stock:', pipeline_stock1)
+            st.write('Safety Stock:', safety_stock1)
+
+            if policy2 == 's,Q':
+                cycle_stock2 = Q2 / 2
+                pipeline_stock2 = mean_demand2 * lead_time2
+                safety_stock2 = std_dev2 * np.sqrt(lead_time2) * norm.ppf(service_level)
+            else:  # R,S
+                cycle_stock2 = mean_demand2 * review_period2 / 2
+                pipeline_stock2 = mean_demand2 * lead_time2
+                safety_stock2 = std_dev2 * np.sqrt(lead_time2 + review_period2) * norm.ppf(service_level)
+
+            st.write(f'Policy 2 ({policy2})')
+            st.write('Cycle Stock:', cycle_stock2)
+            st.write('Pipeline Stock:', pipeline_stock2)
+            st.write('Safety Stock:', safety_stock2)
 
             # Writing results to Excel
             results_df1 = pd.DataFrame({
@@ -221,9 +254,11 @@ if st.session_state.button_clicked:
             st.write(f"Cycle Service Level for Policy 2: {SL_alpha2:.2f}%")
             st.write(f"Period Service Level for Policy 2: {SL_period2:.2f}%")
             st.download_button('Download Comparison Report', data=open(file_path, 'rb').read(), file_name=file_path, mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-
+    
     else:
-        st.header("Single Policy")
+        st.title("Inventory Management - Single Policy")
+
+        st.header("Policy")
         duration = st.number_input("Duration (days)", value=30, key="duration")
         mean_demand = st.number_input("Demand Mean:", value=50, key="mean_demand")
         std_dev = st.number_input("Demand Std Dev:", value=10, key="std_dev")
@@ -254,15 +289,30 @@ if st.session_state.button_clicked:
             ax.plot(inventory_levels, label=f'Inventory Level (Policy: {policy})')
 
             if policy == "R,S":
-                ax.axhline(y=Ss, color='r', linestyle='--', label='Reorder Point (S)')
+                ax.axhline(y=Ss, color='r', linestyle='--', label='R,S Policy Reorder Point')
             if policy == "s,Q":
-                ax.axhline(y=s, color='b', linestyle='--', label='Reorder Point (s)')
+                ax.axhline(y=s, color='b', linestyle='--', label='s,Q Policy Reorder Point')
 
-            ax.set_title(f'Inventory Simulation')
             ax.set_xlabel('Time (days)')
             ax.set_ylabel('Inventory Level')
             ax.legend()
             st.pyplot(fig)
+
+            # Calculate and display stocks
+            st.subheader('Stock Calculations')
+            if policy == 's,Q':
+                cycle_stock = Q / 2
+                pipeline_stock = mean_demand * lead_time
+                safety_stock = std_dev * np.sqrt(lead_time) * norm.ppf(service_level)
+            else:  # R,S
+                cycle_stock = mean_demand * review_period / 2
+                pipeline_stock = mean_demand * lead_time
+                safety_stock = std_dev * np.sqrt(lead_time + review_period) * norm.ppf(service_level)
+
+            st.write(f'Policy ({policy})')
+            st.write('Cycle Stock:', cycle_stock)
+            st.write('Pipeline Stock:', pipeline_stock)
+            st.write('Safety Stock:', safety_stock)
 
             # Writing results to Excel
             results_df = pd.DataFrame({
@@ -276,7 +326,7 @@ if st.session_state.button_clicked:
             # Ensure sheet names are valid by removing any special characters
             valid_policy = ''.join(e for e in policy if e.isalnum())
 
-            file_path = 'inventorycontrol_single.xlsx'
+            file_path = 'inventorycontrol_singlepolicy.xlsx'
             with pd.ExcelWriter(file_path) as writer:
                 results_df.to_excel(writer, sheet_name=f'Policy_{valid_policy}', index=False)
 
