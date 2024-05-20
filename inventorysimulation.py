@@ -196,3 +196,58 @@ if st.session_state.button_clicked:
         st.write('Cycle Stock:', cycle_stock2)
         st.write('Pipeline Stock:', pipeline_stock2)
         st.write('Safety Stock:', safety_stock2)
+    # Writing results to Excel
+        results_df1 = pd.DataFrame({
+            'Time': range(duration1),
+            'Demand': demand_data[:duration1],
+            'On-hand': inventory_levels1,
+            'In-transit': list(in_transit1),
+            'Shortages': shortages1
+        })
+
+        results_df2 = pd.DataFrame({
+            'Time': range(duration2),
+            'Demand': demand_data[:duration2],
+            'On-hand': inventory_levels2,
+            'In-transit': list(in_transit2),
+            'Shortages': shortages2
+        })
+
+        # Ensure sheet names are valid by removing any special characters
+        valid_policy1 = ''.join(e for e in policy1 if e.isalnum())
+        valid_policy2 = ''.join(e for e in policy2 if e.isalnum())
+
+        file_path = 'inventorycontrol_comparison.xlsx'
+        with pd.ExcelWriter(file_path) as writer:
+            results_df1.to_excel(writer, sheet_name=f'Policy1_{valid_policy1}', index=False)
+            results_df2.to_excel(writer, sheet_name=f'Policy2_{valid_policy2}', index=False)
+
+        # Load the workbook to apply formatting
+        wb = load_workbook(file_path)
+        for sheet_name in wb.sheetnames:
+            sheet = wb[sheet_name]
+
+            # Apply formatting
+            header_fill = PatternFill(start_color='FF0000', end_color='FF0000', fill_type='solid')
+            header_font = Font(color='FFFFFF', bold=True)
+            for cell in sheet[1]:
+                cell.fill = header_fill
+                cell.font = header_font
+                cell.border = Border(left=Side(style='thin'), right=Side(style='thin'), top=Side(style='thin'), bottom=Side(style='thin'))
+                cell.alignment = Alignment(horizontal='center', vertical='center')
+
+            # Apply alternating row colors
+            for row in sheet.iter_rows(min_row=2, max_row=sheet.max_row, min_col=1, max_col=sheet.max_column):
+                for cell in row:
+                    cell.border = Border(left=Side(style='thin'), right=Side(style='thin'), top=Side(style='thin'), bottom=Side(style='thin'))
+                    if cell.row % 2 == 0:
+                        cell.fill = PatternFill(start_color='FFEBEB', end_color='FFEBEB', fill_type='solid')
+
+        wb.save(file_path)
+
+        st.success(f"Results saved to {file_path}")
+        st.write(f"Cycle Service Level for Policy 1: {SL_alpha1:.2f}%")
+        st.write(f"Period Service Level for Policy 1: {SL_period1:.2f}%")
+        st.write(f"Cycle Service Level for Policy 2: {SL_alpha2:.2f}%")
+        st.write(f"Period Service Level for Policy 2: {SL_period2:.2f}%")
+        st.download_button('Download Comparison Report', data=open(file_path, 'rb').read(), file_name=file_path, mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
