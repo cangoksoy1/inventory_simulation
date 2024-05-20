@@ -357,7 +357,9 @@ if st.session_state.button_clicked:
             st.write(f"Cycle Service Level: {SL_alpha:.2f}%")
             st.write(f"Period Service Level: {SL_period:.2f}%")
             st.download_button('Download Report', data=open(file_path, 'rb').read(), file_name=file_path, mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+            google_drive_link = "https://drive.google.com/file/d/1qxn0vv2nBxTgH_jAliVltXQ_XU6LUQfp/view?usp=sharing"
 
-google_drive_link = "https://drive.google.com/file/d/1qxn0vv2nBxTgH_jAliVltXQ_XU6LUQfp/view?usp=sharing"
-        if st.button('User Manuel'):
-            st.markdown(f"[User Manuel]({google_drive_link})", unsafe_allow_html=True)
+# Ensure correct indentation level
+if st.button('User Manuel'):
+    st.markdown(f"[User Manuel]({google_drive_link})", unsafe_allow_html=True)
+
